@@ -36,10 +36,14 @@ class Settings(BaseSettings):
     llama_cloud_api_key: str = ""
 
     # Ingestion
-    arxiv_categories: list[str] = Field(default_factory=lambda: list(DEFAULT_ARXIV_CATEGORIES))
-    max_results: int = Field(default=25, description="Maximum papers to fetch per ingestion run.")
-    days_back: int = Field(default=7, description="Only fetch papers submitted in the last N days.")
-    arxiv_max_attempts: int = Field(default=6, description="Search attempts before giving up.")
+    arxiv_categories: list[str] = Field(
+        default_factory=lambda: list(DEFAULT_ARXIV_CATEGORIES),
+        min_length=1,
+        description="arXiv categories to ingest; must be non-empty.",
+    )
+    max_results: int = Field(default=25, gt=0, description="Max papers per ingestion run.")
+    days_back: int = Field(default=7, gt=0, description="Only fetch papers from the last N days.")
+    arxiv_max_attempts: int = Field(default=6, ge=1, description="Attempts before giving up.")
     data_dir: Path = Field(default=Path("data"), description="Root directory for downloaded files.")
 
     @property

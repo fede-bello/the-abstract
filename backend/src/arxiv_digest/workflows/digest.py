@@ -43,8 +43,9 @@ class DigestWorkflow(Workflow):
     async def ingest(self, ev: StartEvent) -> PapersFetchedEvent:
         """Fetch recent arXiv papers (metadata + PDFs).
 
-        Categories, the result cap, and the look-back window come from settings but
-        can be overridden per run via ``workflow.run(max_results=5, days_back=7)``.
+        Categories come from settings. The result cap and look-back window also
+        default to settings but can be overridden per run via
+        ``workflow.run(max_results=5, days_back=7)``.
         """
         max_results = ev.get("max_results", settings.max_results)
         days_back = ev.get("days_back", settings.days_back)

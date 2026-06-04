@@ -1,8 +1,9 @@
 """arXiv client: fetch recent ML-paper metadata and download their PDFs.
 
 Grounded in the `arxiv` library (https://github.com/lukasschwab/arxiv.py) and the
-arXiv API user manual. A single `arxiv.Client` is reused with a 3-second delay to
-respect arXiv's politeness guidelines.
+arXiv API user manual. Each fetch run builds a fresh `arxiv.Client` configured with
+a 5-second inter-request delay; transient throttling (429/503) is handled by our own
+exponential backoff in `_search_with_backoff`.
 """
 
 import asyncio

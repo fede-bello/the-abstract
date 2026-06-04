@@ -12,6 +12,15 @@ if TYPE_CHECKING:
     from arxiv_digest.clients.arxiv import Paper
 
 
+def _positive_int(value: str) -> int:
+    """Parse a strictly positive integer for argparse, or raise a clear error."""
+    parsed = int(value)
+    if parsed <= 0:
+        msg = f"expected a positive integer, got {value!r}"
+        raise argparse.ArgumentTypeError(msg)
+    return parsed
+
+
 async def _run_ingest(max_results: int, days_back: int) -> None:
     """Run the ingestion pipeline once and print the fetched papers with their dates."""
     # Generous timeout (24h): a long arXiv backoff must not trip the workflow clock.
@@ -32,8 +41,12 @@ def main() -> None:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     ingest = subparsers.add_parser("ingest", help="Run the weekly ingestion pipeline once.")
-    ingest.add_argument("--max-results", type=int, help="Cap the number of papers fetched.")
-    ingest.add_argument("--days-back", type=int, help="Only fetch papers from the last N days.")
+    ingest.add_argument(
+        "--max-results", type=_positive_int, help="Cap the number of papers fetched."
+    )
+    ingest.add_argument(
+        "--days-back", type=_positive_int, help="Only fetch papers from the last N days."
+    )
 
     args = parser.parse_args()
 
