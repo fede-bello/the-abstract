@@ -4,7 +4,7 @@ from workflows import step
 
 from arxiv_digest.steps.classification.events import ClassifiedEvent
 from arxiv_digest.steps.parsing.events import ParsedEvent
-from arxiv_digest.workflows.ingest import DigestWorkflow
+from arxiv_digest.workflows.digest import DigestWorkflow
 
 
 @step(workflow=DigestWorkflow)

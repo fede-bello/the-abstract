@@ -6,7 +6,7 @@ from workflows.events import StartEvent
 from arxiv_digest.clients.arxiv import fetch_recent_papers
 from arxiv_digest.config import settings
 from arxiv_digest.steps.ingestion.events import PapersFetchedEvent
-from arxiv_digest.workflows.ingest import DigestWorkflow
+from arxiv_digest.workflows.digest import DigestWorkflow
 
 
 @step(workflow=DigestWorkflow)
