@@ -16,14 +16,14 @@ from pathlib import Path
 import arxiv
 from pydantic import BaseModel
 
+from arxiv_digest.config import settings
+
 logger = logging.getLogger(__name__)
 
 # arXiv throttles with 429 (too many requests) and 503 (service busy). Both are
 # transient, so we retry them with exponential backoff + jitter; other statuses
-# (e.g. 400) fail fast.
+# (e.g. 400) fail fast. (Backoff timings are configurable in Settings.)
 _RETRYABLE_STATUSES = frozenset({429, 503})
-_RETRY_BASE_DELAY_SECONDS = 3.0
-_RETRY_MAX_DELAY_SECONDS = 60.0
 
 
 class Author(BaseModel):
@@ -102,14 +102,15 @@ def _search_with_backoff(
     `max_attempts` is the total number of tries. Non-retryable HTTP errors propagate
     immediately, as does the final attempt's error once retries are exhausted.
     """
-    delay = _RETRY_BASE_DELAY_SECONDS
+    delay = settings.arxiv_retry_base_delay_seconds
     for attempt in range(1, max_attempts):
         try:
             return list(client.results(search))
         except arxiv.HTTPError as exc:
             if exc.status not in _RETRYABLE_STATUSES:
                 raise
-            sleep_for = min(delay, _RETRY_MAX_DELAY_SECONDS) + random.uniform(0.0, 1.0)  # noqa: S311
+            capped = min(delay, settings.arxiv_retry_max_delay_seconds)
+            sleep_for = capped + random.uniform(0.0, 1.0)  # noqa: S311
             logger.warning(
                 "arXiv returned HTTP %s; backing off %.0fs (attempt %d/%d)",
                 exc.status,
@@ -132,9 +133,13 @@ def _fetch_sync(
 ) -> list[Paper]:
     """Synchronously query arXiv and download PDFs (runs in a worker thread)."""
     pdf_dir.mkdir(parents=True, exist_ok=True)
-    # num_retries=1 → one request per attempt; our own backoff (below) handles
-    # spacing, keeping a long-running retry loop polite at ~1 request/minute.
-    client = arxiv.Client(page_size=100, delay_seconds=5.0, num_retries=1)
+    # With arxiv_num_retries=1, each attempt is one request and our own backoff
+    # (below) handles spacing — keeping a long-running retry loop polite.
+    client = arxiv.Client(
+        page_size=settings.arxiv_page_size,
+        delay_seconds=settings.arxiv_request_delay_seconds,
+        num_retries=settings.arxiv_num_retries,
+    )
     search = arxiv.Search(
         query=_build_query(categories, days_back),
         max_results=max_results,
