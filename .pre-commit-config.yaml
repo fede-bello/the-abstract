@@ -1,0 +1,43 @@
+# Setup:
+#   uv run pre-commit install
+
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: Ruff Checker
+        entry: uv run ruff check --fix
+        language: system
+        types: [python]
+      - id: ruff-format
+        name: Ruff Formatter
+        entry: uv run ruff format
+        language: system
+        types: [python]
+      - id: mypy
+        name: mypy
+        entry: uv run mypy
+        language: system
+        types: [python]
+        # mypy resolves the package as a whole via the `files` set in
+        # pyproject.toml — passing it individual changed files breaks imports.
+        pass_filenames: false
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      # Reinforces /ship's rule: branch off main, never commit straight to it.
+      - id: no-commit-to-branch
+        args: [--branch, main]
+      # Public repo — a committed key is leaked the instant it's pushed.
+      - id: detect-private-key
+      # Keep parsed PDFs / data dumps out of git history.
+      - id: check-added-large-files
+        args: ["--maxkb=5120"]
+      - id: check-json
+      - id: check-toml
+      - id: check-yaml
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: end-of-file-fixer
+      - id: trailing-whitespace

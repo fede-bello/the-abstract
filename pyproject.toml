@@ -1,0 +1,98 @@
+[project]
+name = "arxiv-digest"
+version = "0.1.0"
+description = "Weekly AI-curated digests of machine-learning papers from arXiv, with a RAG-powered Q&A app."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Federico Bello" }]
+dependencies = [
+    # Orchestration — the pipeline is built on LlamaIndex Workflows
+    "llama-index-workflows>=2.0",
+    "llama-index-core>=0.12",
+    # LLM + document parsing
+    "llama-index-llms-anthropic>=0.6",
+    "llama-cloud-services>=0.6",
+    # Storage / vector search (Postgres + pgvector)
+    "llama-index-vector-stores-postgres>=0.4",
+    # API
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    # Core
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.15",
+    "mypy>=1.13",
+    "pre-commit>=4.0",
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+]
+
+[project.scripts]
+arxiv-digest = "arxiv_digest.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["backend/src/arxiv_digest"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["backend/src"]
+extend-exclude = [".venv", "frontend"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+extend-ignore = [
+    # Docstrings
+    "D100", # Missing docstring in public module
+    "D104", # Missing docstring in public package
+    "D106", # Missing docstring in public nested class
+    "D107", # Document __init__ in the class body, not the method
+
+    # TODOs / FIXMEs
+    "FIX",   # Allow FIXME comments
+    "TD002", # Allow TODO without author
+    "TD003", # Allow TODO without issue link
+
+    # Misc
+    "CPY", # No copyright-notice requirement
+
+    # Conflicts with the ruff formatter — keep disabled when formatting with ruff
+    "W191", "E111", "E114", "E117",
+    "D206", "D300",
+    "Q000", "Q001", "Q002", "Q003",
+    "COM812", "COM819",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests may use assert and don't need docstrings.
+"backend/tests/**" = ["S101", "D"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["backend/src"]
+strict = true
+plugins = ["pydantic.mypy"]
+
+# Several LlamaIndex / LlamaCloud packages don't ship type stubs yet.
+[[tool.mypy.overrides]]
+module = [
+    "llama_index.*",
+    "llama_cloud_services.*",
+    "workflows.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+pythonpath = ["backend/src"]
+testpaths = ["backend/tests"]
+asyncio_mode = "auto"
