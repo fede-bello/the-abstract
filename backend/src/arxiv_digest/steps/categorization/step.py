@@ -1,17 +1,12 @@
-"""Categorization step (stub): assign multi-label topic tags to each paper."""
+"""Categorization logic: assign multi-label topic tags to each paper."""
 
-from workflows import step
-
-from arxiv_digest.steps.categorization.events import CategorizedEvent
-from arxiv_digest.steps.parsing.events import ParsedEvent
-from arxiv_digest.workflows.digest import DigestWorkflow
+from arxiv_digest.clients.arxiv import Paper
 
 
-@step(workflow=DigestWorkflow)
-async def categorize(ev: ParsedEvent) -> CategorizedEvent:
-    """Pass papers through unchanged for now.
+async def categorize_papers(papers: list[Paper]) -> list[Paper]:
+    """Tag each paper with one or more topics from the predefined category list.
 
-    TODO: assign each paper one or more topic tags from the project's predefined
-    category list (LLMs, Diffusion, RL, Agents, ...) using its abstract and content.
+    TODO: classify into LLMs, Diffusion, RL, Agents, ... from abstract + content.
+    Pass-through for now.
     """
-    return CategorizedEvent(papers=ev.papers)
+    return papers

@@ -1,17 +1,12 @@
-"""Storage step (stub): persist papers and their embeddings."""
+"""Storage logic: persist papers and their embeddings."""
 
-from workflows import step
-
-from arxiv_digest.steps.storage.events import StoredEvent
-from arxiv_digest.steps.summarization.events import SummarizedEvent
-from arxiv_digest.workflows.digest import DigestWorkflow
+from arxiv_digest.clients.arxiv import Paper
 
 
-@step(workflow=DigestWorkflow)
-async def store(ev: SummarizedEvent) -> StoredEvent:
-    """Pass papers through unchanged for now.
+async def store_papers(papers: list[Paper]) -> list[Paper]:
+    """Persist metadata, parsed content, summaries, and embeddings.
 
-    TODO: persist metadata, parsed content, summaries, and embeddings to
-    Postgres/pgvector for retrieval and the Q&A app.
+    TODO: write to Postgres/pgvector for retrieval and the Q&A app. Pass-through
+    for now (returns the papers so distribution can use them).
     """
-    return StoredEvent(papers=ev.papers)
+    return papers

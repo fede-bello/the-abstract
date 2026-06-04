@@ -1,17 +1,12 @@
-"""Summarization step (stub): generate short and long summaries for each paper."""
+"""Summarization logic: generate short and long summaries for each paper."""
 
-from workflows import step
-
-from arxiv_digest.steps.categorization.events import CategorizedEvent
-from arxiv_digest.steps.summarization.events import SummarizedEvent
-from arxiv_digest.workflows.digest import DigestWorkflow
+from arxiv_digest.clients.arxiv import Paper
 
 
-@step(workflow=DigestWorkflow)
-async def summarize(ev: CategorizedEvent) -> SummarizedEvent:
-    """Pass papers through unchanged for now.
+async def summarize_papers(papers: list[Paper]) -> list[Paper]:
+    """Produce a short (3-4 bullet) and long (~2 paragraph) summary per paper.
 
-    TODO: generate a short (3-4 bullet) and long (~2 paragraph) summary plus a
-    conclusions section for each paper from its parsed content.
+    TODO: summarize each paper from its parsed content, with a conclusions section.
+    Pass-through for now.
     """
-    return SummarizedEvent(papers=ev.papers)
+    return papers

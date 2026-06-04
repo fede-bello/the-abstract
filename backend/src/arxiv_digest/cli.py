@@ -6,7 +6,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from arxiv_digest.config import settings
-from arxiv_digest.workflows.ingest import DigestWorkflow
+from arxiv_digest.workflows.digest import DigestWorkflow
 
 if TYPE_CHECKING:
     from arxiv_digest.clients.arxiv import Paper

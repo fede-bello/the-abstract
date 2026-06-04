@@ -1,17 +1,12 @@
-"""Classification step (stub): label each paper as useful vs noise from its metadata."""
+"""Classification logic: keep useful papers, drop noise."""
 
-from workflows import step
-
-from arxiv_digest.steps.classification.events import ClassifiedEvent
-from arxiv_digest.steps.ingestion.events import PapersFetchedEvent
-from arxiv_digest.workflows.digest import DigestWorkflow
+from arxiv_digest.clients.arxiv import Paper
 
 
-@step(workflow=DigestWorkflow)
-async def classify(ev: PapersFetchedEvent) -> ClassifiedEvent:
-    """Pass papers through unchanged for now.
+async def classify_papers(papers: list[Paper]) -> list[Paper]:
+    """Return only the papers worth processing.
 
     TODO: send each paper's metadata (title, abstract, authors, affiliations,
-    comment) to the LLM and keep only the papers labelled "useful".
+    comment) to the LLM and keep the ones labelled "useful". Pass-through for now.
     """
-    return ClassifiedEvent(papers=ev.papers)
+    return papers

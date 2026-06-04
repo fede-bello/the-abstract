@@ -1,17 +1,12 @@
-"""Parsing step (stub): fully parse each useful paper's PDF."""
+"""Parsing logic: fully parse each useful paper's PDF."""
 
-from workflows import step
-
-from arxiv_digest.steps.classification.events import ClassifiedEvent
-from arxiv_digest.steps.parsing.events import ParsedEvent
-from arxiv_digest.workflows.digest import DigestWorkflow
+from arxiv_digest.clients.arxiv import Paper
 
 
-@step(workflow=DigestWorkflow)
-async def parse(ev: ClassifiedEvent) -> ParsedEvent:
-    """Pass papers through unchanged for now.
+async def parse_papers(papers: list[Paper]) -> list[Paper]:
+    """Parse each paper's PDF into text, figures, and tables.
 
-    TODO: parse each paper's PDF (`pdf_path`) with LlamaParse into text, figures,
-    and tables, and attach the parsed content to the paper.
+    TODO: run each ``pdf_path`` through LlamaParse and attach the parsed content.
+    Pass-through for now.
     """
-    return ParsedEvent(papers=ev.papers)
+    return papers

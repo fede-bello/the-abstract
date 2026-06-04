@@ -21,23 +21,23 @@ If the project layout differs from what's described here (the codebase is young 
 
 ## The Architecture (what "correct placement" means here)
 
-The whole backend is organized around LlamaIndex Workflows. Everything that *does work* is a step; everything a step *reaches for* is a client.
+The backend is organized around LlamaIndex Workflows. The workflow file is the explicit orchestration; each stage's *work* is a pure logic function; everything those functions *reach for* is a client.
 
 ```
 backend/src/arxiv_digest/
-├── workflows/        # ingest.py, qa.py — thin orchestration ONLY
-├── steps/            # one folder per pipeline stage — where work lives
-│   └── <stage>/      #   events.py (the events this stage emits) + step.py (the logic)
-├── clients/          # llm.py, db.py, arxiv.py, parse.py — external I/O, called BY steps
+├── workflows/        # digest.py (qa.py later) — the pipeline: every @step METHOD, in order
+├── steps/            # one folder per pipeline stage
+│   └── <stage>/      #   step.py (pure async logic fn) + events.py (the stage's event class)
+├── clients/          # llm.py, db.py, arxiv.py, parse.py — external I/O, called BY logic fns
 ├── api/              # FastAPI app — thin HTTP layer over the workflows
 └── config.py         # env-driven configuration
 frontend/             # Vite + React SPA — talks to the API only
 ```
 
 **The load-bearing rules:**
-- **Workflow files stay thin.** `workflows/*.py` declare the `Workflow` subclass and import the step modules so the `@step(workflow=...)` decorators register. No business logic, no LLM calls, no SQL in a workflow file — if logic crept in there, it belongs in a step.
-- **Steps are self-contained.** Each `steps/<stage>/` owns its events (`events.py`) and its logic (`step.py`). A step is an `async` function (unbound, `@step(workflow=DigestWorkflow)`) or method that receives one `Event` and returns the next. Events are the contract *between* steps.
-- **Clients own all external I/O.** Every arXiv call, LLM/embedding call, LlamaParse call, and DB query lives in `clients/`. A step that contains a raw `httpx` request, an inline SDK call, or a raw SQL string is a layer violation — it should call a client function.
+- **The workflow file is the orchestration hub.** `workflows/digest.py` declares `DigestWorkflow` with every stage as a `@step` **method**, in pipeline order. A method resolves inputs, calls its stage's logic function, handles errors/branching, and returns the next `Event`. This is the right place for control flow (order, branches, fan-out) — but NOT for external I/O (no raw arXiv/LLM/SQL calls in a method; those go through a logic fn → client).
+- **Steps are pure logic.** `steps/<stage>/step.py` is a plain `async` function (e.g. `classify_papers(papers) -> list[Paper]`) with no `@step` decorator and no workflow imports; `events.py` holds the stage's `Event` class. A logic function that imports `workflows` or builds `Event`s is misplaced — the workflow method owns the event wrapping.
+- **Clients own all external I/O.** Every arXiv call, LLM/embedding call, LlamaParse call, and DB query lives in `clients/`. A logic function (or workflow method) containing a raw `httpx` request, an inline SDK call, or a raw SQL string is a layer violation — it should call a client function.
 - **The API is thin.** FastAPI route handlers validate input (Pydantic), call a workflow or a client, and shape the response. No business logic or raw SQL in a route handler.
 - **The frontend talks to the API only.** No direct DB access, no secrets. API calls go through a shared typed client, not scattered `fetch` calls.
 
@@ -75,9 +75,9 @@ This is the most important step. For every new step, event, client function, wor
    - **API** — shared request/response Pydantic models and dependencies (`Depends(...)`) rather than re-deriving them per route.
    - **Frontend** — check `frontend/src/` for an existing API-client function, hook, type, or UI primitive before adding a new one.
 
-2. **Check placement against the architecture above.** External I/O in a step (should be a client). Business logic in a workflow file or an API route (should be a step / client). A function named after one specific screen or one specific paper-stage that's actually generic is a reusability anti-pattern.
+2. **Check placement against the architecture above.** External I/O in a workflow method or a logic function (should be a client). A logic function that imports `workflows` or builds `Event`s (the workflow method should own that). Heavy business logic inlined in a workflow method instead of its `steps/<stage>/step.py` logic function. A raw SQL string in an API route (should be a client).
 
-3. **Check for near-duplicates within the changed files** — two steps, events, or client functions that do almost the same thing with minor variations should be unified. Cross-file duplication with untouched code → report as an Observation, don't refactor it.
+3. **Check for near-duplicates within the changed files** — two logic functions, events, or client functions that do almost the same thing with minor variations should be unified. Cross-file duplication with untouched code → report as an Observation, don't refactor it.
 
 ## Step 4: Identify Dead Code and Unnecessary Comments
 
@@ -104,12 +104,12 @@ This is the most important step. For every new step, event, client function, wor
 ### DRY (Don't Repeat Yourself)
 - Any logic block appearing 2+ times with only parameter differences should be one function.
 - Any external call that duplicates an existing `clients/` function.
-- Any step/component that is a copy-paste of another with minor changes.
+- Any logic function / component that is a copy-paste of another with minor changes.
 
 ### Architecture Compliance
-- **Workflows**: orchestration only — class declaration + step registration. No business logic, no I/O.
-- **Steps**: one `Event` in, the next `Event`(s) out, fully type-hinted so the workflow graph validates. Use workflow primitives — `ctx.send_event()` for fan-out, `@step(num_workers=N)` for concurrency, `ctx.collect_events()` for fan-in, `Context[StateModel]` + `ctx.store.edit_state()` for shared state. Flag hand-rolled `asyncio.gather`, busy-wait loops, or module-level globals where a workflow primitive exists.
-- **Clients**: external I/O only. No workflow/step imports leaking in. Raise on error so steps can apply retry policy.
+- **Workflow (`digest.py`)**: every stage is a `@step` method, in order. A method resolves inputs, calls its stage's logic function, and returns the next `Event` — control flow only. Use workflow primitives here — `ctx.send_event()` for fan-out, `@step(num_workers=N)` for concurrency, `ctx.collect_events()` for fan-in, `Context[StateModel]` + `ctx.store.edit_state()` for shared state. Flag hand-rolled `asyncio.gather`, busy-wait loops, and external I/O inlined in a method.
+- **Step logic (`steps/<stage>/step.py`)**: a pure `async` function, fully type-hinted, returning data (e.g. `list[Paper]`) — NOT an `Event`. No `@step`, no `workflows` import. `events.py` holds the stage's `Event` class.
+- **Clients**: external I/O only. No workflow/step imports leaking in. Raise on error so the workflow method can apply a retry policy.
 - **API**: thin handlers — validate, call, respond. Async. Dependency injection for clients.
 - **Frontend**: functional components, talk to the API through the shared client, props destructured in the signature.
 
@@ -129,9 +129,11 @@ This is the most important step. For every new step, event, client function, wor
 - New Supabase tables need RLS policies.
 
 ### Layer Violations (call these out explicitly)
-- A step making a raw HTTP/SDK/DB call instead of going through `clients/`.
-- Business logic or SQL inside a `workflows/*.py` file or a FastAPI route handler.
-- A client importing a workflow or step.
+- A logic function or workflow method making a raw HTTP/SDK/DB call instead of going through `clients/`.
+- A step logic function importing `workflows` or constructing `Event`s (the workflow method owns event wrapping).
+- A workflow method carrying heavy business logic that belongs in its stage's logic function.
+- SQL inside a workflow method or a FastAPI route handler.
+- A client importing a workflow or a step.
 - The frontend reading the database or env secrets directly instead of going through the API.
 
 ## Step 6: Report

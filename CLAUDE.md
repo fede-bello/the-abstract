@@ -25,17 +25,18 @@ Monorepo. The backend is organized around **LlamaIndex Workflows**: everything t
 
 ```
 backend/src/arxiv_digest/
-├── workflows/   # ingest.py, qa.py — thin orchestration ONLY (declare Workflow + register steps)
-├── steps/<stage>/   # events.py + step.py — self-contained pipeline stages
+├── workflows/   # digest.py (qa.py later) — the explicit pipeline: every @step METHOD here, in order
+├── steps/<stage>/   # step.py = pure async logic fn; events.py = the stage's event class
 ├── clients/     # llm.py, db.py, arxiv.py, parse.py — ALL external I/O lives here
 ├── api/         # FastAPI — thin HTTP layer over the workflows
 └── config.py    # env-driven config
 frontend/        # Vite + React SPA — talks to the API only
 ```
 
-- **Workflow files stay thin.** No business logic or I/O — just the `Workflow` subclass and step imports.
-- **Steps are self-contained.** One `Event` in, the next `Event` out, fully type-hinted (the graph validates on type hints). Use workflow primitives — `ctx.send_event`, `@step(num_workers=N)`, `ctx.collect_events`, `Context[StateModel]` — not hand-rolled `asyncio.gather`.
-- **Clients own all external I/O.** A raw HTTP/SDK/SQL call inside a step is a layer violation — it belongs in `clients/`.
+- **The workflow file is the orchestration hub.** `DigestWorkflow` in `workflows/digest.py` holds every stage as a `@step` **method**, in pipeline order. Each method calls its stage's logic function, handles errors/branching, and returns the next event. Order + branching live here, readable top-to-bottom.
+- **Steps are pure logic.** `steps/<stage>/step.py` is a plain `async` function (e.g. `classify_papers(papers) -> list[Paper]`) with no `@step`/workflow coupling; `events.py` holds the stage's event class. The workflow method wraps the logic's return into an event.
+- **Clients own all external I/O.** A raw HTTP/SDK/SQL call inside a step's logic or a workflow method is a layer violation — it belongs in `clients/`.
+- **Workflow primitives** (`ctx.send_event`, `@step(num_workers=N)`, `ctx.collect_events`, `Context[StateModel]`) go in the workflow methods, never hand-rolled `asyncio.gather`.
 - **The API and the weekly pipeline are two entry points into the same package**, sharing `clients/` and the DB.
 
 ## Conventions
