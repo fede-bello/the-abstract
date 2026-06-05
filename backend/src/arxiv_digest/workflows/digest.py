@@ -8,23 +8,29 @@ here in one readable place; the heavy lifting lives in the step modules.
 
 Event flow:
 
-    StartEvent          ->  ingest      ->  PapersFetchedEvent
-    PapersFetchedEvent  ->  classify    ->  ClassifiedEvent
-    ClassifiedEvent     ->  parse       ->  ParsedEvent
+    StartEvent          ->  ingest             ->  PapersFetchedEvent
+    PapersFetchedEvent  ->  classify (fan-out) ->  ClassifyPaperEvent (per paper)
+    ClassifyPaperEvent  ->  classify_one       ->  PaperClassifiedEvent
+    PaperClassifiedEvent -> collect_classified ->  ClassifiedEvent (fan-in)
+    ClassifiedEvent     ->  parse              ->  ParsedEvent
     ParsedEvent         ->  categorize  ->  CategorizedEvent
     CategorizedEvent    ->  summarize   ->  SummarizedEvent
     SummarizedEvent     ->  store       ->  StoredEvent
     StoredEvent         ->  distribute  ->  StopEvent
 """
 
-from workflows import Workflow, step
+from workflows import Context, Workflow, step
 from workflows.events import StartEvent, StopEvent
 
 from arxiv_digest.config import settings
 from arxiv_digest.steps.categorization.events import CategorizedEvent
 from arxiv_digest.steps.categorization.step import categorize_papers
-from arxiv_digest.steps.classification.events import ClassifiedEvent
-from arxiv_digest.steps.classification.step import classify_papers
+from arxiv_digest.steps.classification.events import (
+    ClassifiedEvent,
+    ClassifyPaperEvent,
+    PaperClassifiedEvent,
+)
+from arxiv_digest.steps.classification.step import classify_paper
 from arxiv_digest.steps.distribution.step import send_digest
 from arxiv_digest.steps.ingestion.events import PapersFetchedEvent
 from arxiv_digest.steps.ingestion.step import fetch_papers
@@ -53,10 +59,38 @@ class DigestWorkflow(Workflow):
         return PapersFetchedEvent(papers=papers)
 
     @step
-    async def classify(self, ev: PapersFetchedEvent) -> ClassifiedEvent:
-        """Keep only the papers the classifier marks as useful."""
-        papers = await classify_papers(ev.papers)
-        return ClassifiedEvent(papers=papers)
+    async def classify(
+        self, ctx: Context, ev: PapersFetchedEvent
+    ) -> ClassifyPaperEvent | ClassifiedEvent | None:
+        """Fan out one classification per paper, bounded by ``llm_max_concurrency``.
+
+        With no papers, no worker ever runs, so emit an empty ``ClassifiedEvent``
+        directly rather than waiting on a fan-in that would never complete.
+        """
+        if not ev.papers:
+            return ClassifiedEvent(papers=[])
+        await ctx.store.set("classify_total", len(ev.papers))
+        for paper in ev.papers:
+            ctx.send_event(ClassifyPaperEvent(paper=paper))
+        return None
+
+    @step(num_workers=settings.llm_max_concurrency)
+    async def classify_one(self, ev: ClassifyPaperEvent) -> PaperClassifiedEvent:
+        """Classify a single paper (runs concurrently across ``num_workers``)."""
+        result = await classify_paper(ev.paper)
+        return PaperClassifiedEvent(paper=ev.paper, result=result)
+
+    @step
+    async def collect_classified(
+        self, ctx: Context, ev: PaperClassifiedEvent
+    ) -> ClassifiedEvent | None:
+        """Fan in every verdict, then keep only the papers marked useful."""
+        total = await ctx.store.get("classify_total")
+        done = ctx.collect_events(ev, [PaperClassifiedEvent] * total)
+        if done is None:
+            return None
+        useful = [d.paper for d in done if d.result.label == "useful"]
+        return ClassifiedEvent(papers=useful)
 
     @step
     async def parse(self, ev: ClassifiedEvent) -> ParsedEvent:
