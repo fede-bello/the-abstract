@@ -23,8 +23,8 @@ def _positive_int(value: str) -> int:
 
 async def _run_ingest(max_results: int, days_back: int) -> None:
     """Run the ingestion pipeline once and print the fetched papers with their dates."""
-    # Generous timeout (24h): a long arXiv backoff must not trip the workflow clock.
-    workflow = DigestWorkflow(timeout=86_400, verbose=True)
+    # The timeout (default 24h) must outlast a long arXiv backoff; see settings.
+    workflow = DigestWorkflow(timeout=settings.workflow_timeout_seconds, verbose=True)
     result = await workflow.run(max_results=max_results, days_back=days_back)
     papers: list[Paper] = result if isinstance(result, list) else []
 
@@ -35,7 +35,7 @@ async def _run_ingest(max_results: int, days_back: int) -> None:
 
 def main() -> None:
     """Parse arguments and dispatch the requested command."""
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    logging.basicConfig(level=settings.log_level, format="%(levelname)s %(name)s: %(message)s")
 
     parser = argparse.ArgumentParser(prog="arxiv-digest", description="arXiv ML Digest pipeline.")
     subparsers = parser.add_subparsers(dest="command", required=True)
