@@ -1,0 +1,162 @@
+[
+  {
+    "label": "useful",
+    "why": "Training-free parallel sampling reformulation cutting diffusion inference 4-14x; ICML 2024, not a flagship effort.",
+    "arxiv_id": "2402.09970",
+    "title": "Accelerating Parallel Sampling of Diffusion Models",
+    "authors": ["Zhiwei Tang", "Jiasheng Tang", "Hao Luo", "Fan Wang", "Tsung-Hui Chang"],
+    "primary_category": "cs.LG",
+    "abstract": "Diffusion models have emerged as state-of-the-art generative models for image generation. However, sampling from diffusion models is usually time-consuming due to the inherent autoregressive nature of their sampling process. In this work, we propose a novel approach that accelerates the sampling of diffusion models by parallelizing the autoregressive process. Specifically, we reformulate the sampling process as solving a system of triangular nonlinear equations through fixed-point iteration. With this innovative formulation, we explore several systematic techniques to further reduce the iteration steps required by the solving process. Applying these techniques, we introduce ParaTAA, a universal and training-free parallel sampling algorithm that can leverage extra computational and memory resources to increase the sampling speed. Our experiments demonstrate that ParaTAA can decrease the inference steps required by common sequential sampling algorithms such as DDIM and DDPM by a factor of 4 to 14 times. Notably, when applying ParaTAA with 100 steps DDIM for Stable Diffusion, a widely-used text-to-image diffusion model, it can produce the same images as the sequential sampling in only 7 inference steps.",
+    "comment": "ICML 2024"
+  },
+  {
+    "label": "useful",
+    "why": "Memory-efficient Adam variant with provable convergence via compressed error feedback; solid method paper, not a landmark.",
+    "arxiv_id": "2405.15593",
+    "title": "MicroAdam: Accurate Adaptive Optimization with Low Space Overhead and Provable Convergence",
+    "authors": ["Ionut-Vlad Modoranu", "Mher Safaryan", "Grigory Malinovsky", "Eldar Kurtic", "Thomas Robert", "Peter Richtarik", "Dan Alistarh"],
+    "primary_category": "cs.LG",
+    "abstract": "We propose a new variant of the Adam optimizer called MicroAdam that specifically minimizes memory overheads, while maintaining theoretical convergence guarantees. We achieve this by compressing the gradient information before it is fed into the optimizer state, thereby reducing its memory footprint significantly. We control the resulting compression error via a novel instance of the classical error feedback mechanism from distributed optimization in which the error correction information is itself compressed to allow for practical memory gains. We prove that the resulting approach maintains theoretical convergence guarantees competitive to those of AMSGrad, while providing good practical performance. Specifically, we show that MicroAdam can be implemented efficiently on GPUs: on both million-scale (BERT) and billion-scale (LLaMA) models, MicroAdam provides practical convergence competitive to that of the uncompressed Adam baseline, with lower memory usage and similar running time.",
+    "comment": null
+  },
+  {
+    "label": "useful",
+    "why": "Provably powerful directed-multigraph GNN adaptations with strong financial-crime detection gains; AAAI 2024, non-viral.",
+    "arxiv_id": "2306.11586",
+    "title": "Provably Powerful Graph Neural Networks for Directed Multigraphs",
+    "authors": ["Béni Egressy", "Luc von Niederhäusern", "Jovan Blanusa", "Erik Altman", "Roger Wattenhofer", "Kubilay Atasu"],
+    "primary_category": "cs.LG",
+    "abstract": "This paper analyses a set of simple adaptations that transform standard message-passing Graph Neural Networks (GNN) into provably powerful directed multigraph neural networks. The adaptations include multigraph port numbering, ego IDs, and reverse message passing. We prove that the combination of these theoretically enables the detection of any directed subgraph pattern. To validate the effectiveness of our proposed adaptations in practice, we conduct experiments on synthetic subgraph detection tasks, which demonstrate outstanding performance with almost perfect results. Moreover, we apply our proposed adaptations to two financial crime analysis tasks. We observe dramatic improvements in detecting money laundering transactions, improving the minority-class F1 score of a standard message-passing GNN by up to 30%, and closely matching or outperforming tree-based and GNN baselines. Similarly impressive results are observed on a real-world phishing detection dataset, boosting three standard GNNs' F1 scores by around 15% and outperforming all baselines.",
+    "comment": "AAAI 2024"
+  },
+  {
+    "label": "useful",
+    "why": "Grammar-induction-inspired adaptive graph pooling learning per-graph structure; ICLR 2024 from a mid-tier group.",
+    "arxiv_id": "2402.14393",
+    "title": "Graph Parsing Networks",
+    "authors": ["Yunchong Song", "Siyuan Huang", "Xinbing Wang", "Chenghu Zhou", "Zhouhan Lin"],
+    "primary_category": "cs.LG",
+    "abstract": "Graph pooling compresses graph information into a compact representation. State-of-the-art graph pooling methods follow a hierarchical approach, which reduces the graph size step-by-step. These methods must balance memory efficiency with preserving node information, depending on whether they use node dropping or node clustering. Additionally, fixed pooling ratios or numbers of pooling layers are predefined for all graphs, which prevents personalized pooling structures from being captured for each individual graph. In this work, inspired by bottom-up grammar induction, we propose an efficient graph parsing algorithm to infer the pooling structure, which then drives graph pooling. The resulting Graph Parsing Network (GPN) adaptively learns personalized pooling structure for each individual graph. GPN benefits from the discrete assignments generated by the graph parsing algorithm, allowing good memory efficiency while preserving node information intact. Experimental results on standard benchmarks demonstrate that GPN outperforms state-of-the-art graph pooling methods in graph classification tasks while being able to achieve competitive performance in node classification tasks. We also conduct a graph reconstruction task to show GPN's ability to preserve node information and measure both memory and time efficiency through relevant tests.",
+    "comment": "Published as a conference paper at ICLR 2024"
+  },
+  {
+    "label": "useful",
+    "why": "Training-free KV-cache compression via retrieval heads with a compensation-token mechanism; 70%+ reduction, practical.",
+    "arxiv_id": "2407.15891",
+    "title": "RazorAttention: Efficient KV Cache Compression Through Retrieval Heads",
+    "authors": ["Hanlin Tang", "Yang Lin", "Jing Lin", "Qingsen Han", "Shikuan Hong", "Yiwu Yao", "Gongyi Wang"],
+    "primary_category": "cs.LG",
+    "abstract": "The memory and computational demands of Key-Value (KV) cache present significant challenges for deploying long-context language models. Previous approaches attempt to mitigate this issue by selectively dropping tokens, which irreversibly erases critical information that might be needed for future queries. In this paper, we propose a novel compression technique for KV cache that preserves all token information. Our investigation reveals that: i) Most attention heads primarily focus on the local context; ii) Only a few heads, denoted as retrieval heads, can essentially pay attention to all input tokens. These key observations motivate us to use separate caching strategy for attention heads. Therefore, we propose RazorAttention, a training-free KV cache compression algorithm, which maintains a full cache for these crucial retrieval heads and discards the remote tokens in non-retrieval heads. Furthermore, we introduce a novel mechanism involving a compensation token to further recover the information in the dropped tokens. Extensive evaluations across a diverse set of large language models (LLMs) demonstrate that RazorAttention achieves a reduction in KV cache size by over 70% without noticeable impacts on performance. Additionally, RazorAttention is compatible with FlashAttention, rendering it an efficient and plug-and-play solution that enhances LLM inference efficiency without overhead or retraining of the original model.",
+    "comment": null
+  },
+  {
+    "label": "useful",
+    "why": "Unified latent-diffusion framework across generation/imputation/forecasting for heterogeneous time-series tables; broadly relevant.",
+    "arxiv_id": "2406.16028",
+    "title": "TimeAutoDiff: A Unified Framework for Generation, Imputation, Forecasting, and Time-Varying Metadata Conditioning of Heterogeneous Time Series Tabular Data",
+    "authors": ["Namjoon Suh", "Yuning Yang", "Din-Yin Hsieh", "Qitong Luan", "Shirong Xu", "Shixiang Zhu", "Guang Cheng"],
+    "primary_category": "cs.LG",
+    "abstract": "We present TimeAutoDiff, a unified latent-diffusion framework for four fundamental time-series tasks: unconditional generation, missing-data imputation, forecasting, and time-varying-metadata conditional generation. The model natively supports heterogeneous features including continuous, binary, and categorical variables. We unify all tasks using a masked-modeling strategy in which a binary mask specifies which time-series cells are observed and which must be generated. TimeAutoDiff combines a lightweight variational autoencoder, which maps mixed-type features into a continuous latent sequence, with a diffusion model that learns temporal dynamics in this latent space. Two architectural choices provide strong speed and scalability benefits. The diffusion model samples an entire latent trajectory at once rather than denoising one timestep at a time, greatly reducing reverse-diffusion calls. In addition, the VAE compresses along the feature axis, enabling efficient modeling of wide tables in a low-dimensional latent space. Empirical evaluation shows that TimeAutoDiff matches or surpasses strong baselines in synthetic sequence fidelity and consistently improves imputation and forecasting performance.",
+    "comment": null
+  },
+  {
+    "label": "useful",
+    "why": "Novel state-novelty-driven action-persistence exploration needing no extra value function/policy; genuine RL method.",
+    "arxiv_id": "2409.05433",
+    "title": "State-Novelty Guided Action Persistence in Deep Reinforcement Learning",
+    "authors": ["Jianshu Hu", "Paul Weng", "Yutong Ban"],
+    "primary_category": "cs.LG",
+    "abstract": "While a powerful and promising approach, deep reinforcement learning (DRL) still suffers from sample inefficiency, which can be notably improved by resorting to more sophisticated techniques to address the exploration-exploitation dilemma. One such technique relies on action persistence (i.e., repeating an action over multiple steps). However, previous work exploiting action persistence either applies a fixed strategy or learns additional value functions (or policy) for selecting the repetition number. In this paper, we propose a novel method to dynamically adjust the action persistence based on the current exploration status of the state space. In such a way, our method does not require training of additional value functions or policy. Moreover, the use of a smooth scheduling of the repeat probability allows a more effective balance between exploration and exploitation. Furthermore, our method can be seamlessly integrated into various basic exploration strategies to incorporate temporal persistence. Finally, extensive experiments on different DMControl tasks demonstrate that our state-novelty guided action persistence method significantly improves the sample efficiency.",
+    "comment": "Under review"
+  },
+  {
+    "label": "useful",
+    "why": "Class-conditioned + feature-correlation augmentation improving tabular contrastive learning; modest but genuine method.",
+    "arxiv_id": "2404.17489",
+    "title": "Tabular Data Contrastive Learning via Class-Conditioned and Feature-Correlation Based Augmentation",
+    "authors": ["Wei Cui", "Rasa Hosseinzadeh", "Junwei Ma", "Tongzi Wu", "Yi Sui", "Keyvan Golestan"],
+    "primary_category": "cs.LG",
+    "abstract": "Contrastive learning is a model pre-training technique by first creating similar views of the original data, and then encouraging the data and its corresponding views to be close in the embedding space. Contrastive learning has witnessed success in image and natural language data, thanks to the domain-specific augmentation techniques that are both intuitive and effective. Nonetheless, in tabular domain, the predominant augmentation technique for creating views is through corrupting tabular entries via swapping values, which is not as sound or effective. We propose a simple yet powerful improvement to this augmentation technique: corrupting tabular data conditioned on class identity. Specifically, when corrupting a specific tabular entry from an anchor row, instead of randomly sampling a value in the same feature column from the entire table uniformly, we only sample from rows that are identified to be within the same class as the anchor row. We assume the semi-supervised learning setting, and adopt the pseudo labeling technique for obtaining class identities over all table rows. We also explore the novel idea of selecting features to be corrupted based on feature correlation structures. Extensive experiments show that the proposed approach consistently outperforms the conventional corruption method for tabular data classification tasks.",
+    "comment": "14 pages, 4 algorithms, 3 figures, 5 tables"
+  },
+  {
+    "label": "noise",
+    "why": "Narrow batch-norm-statistics tweak for an artificial one-shot variant of domain-incremental learning.",
+    "arxiv_id": "2403.16707",
+    "title": "One-Shot Domain Incremental Learning",
+    "authors": ["Yasushi Esaki", "Satoshi Koide", "Takuro Kutsuna"],
+    "primary_category": "cs.LG",
+    "abstract": "Domain incremental learning (DIL) has been discussed in previous studies on deep neural network models for classification. In DIL, we assume that samples on new domains are observed over time. The models must classify inputs on all domains. In practice, however, we may encounter a situation where we need to perform DIL under the constraint that the samples on the new domain are observed only infrequently. Therefore, in this study, we consider the extreme case where we have only one sample from the new domain, which we call one-shot DIL. We first empirically show that existing DIL methods do not work well in one-shot DIL. We have analyzed the reason for this failure through various investigations. According to our analysis, we clarify that the difficulty of one-shot DIL is caused by the statistics in the batch normalization layers. Therefore, we propose a technique regarding these statistics and demonstrate the effectiveness of our technique through experiments on open datasets.",
+    "comment": "Accepted at IEEE International Joint Conference on Neural Networks (IJCNN) 2024"
+  },
+  {
+    "label": "noise",
+    "why": "Combines existing components on a single proprietary telecom dataset; narrow application, low broader relevance.",
+    "arxiv_id": "2407.02258",
+    "title": "SiamTST: A Novel Representation Learning Framework for Enhanced Multivariate Time Series Forecasting applied to Telco Networks",
+    "authors": ["Simen Kristoffersen", "Peter Skaar Nordby", "Sara Malacarne", "Massimiliano Ruocco", "Pablo Ortiz"],
+    "primary_category": "cs.LG",
+    "abstract": "We introduce SiamTST, a novel representation learning framework for multivariate time series. SiamTST integrates a Siamese network with attention, channel-independent patching, and normalization techniques to achieve superior performance. Evaluated on a real-world industrial telecommunication dataset, SiamTST demonstrates significant improvements in forecasting accuracy over existing methods. Notably, a simple linear network also shows competitive performance, achieving the second-best results, just behind SiamTST. The code is available at the linked repository.",
+    "comment": "14 pages, 3 figures, public codebase"
+  },
+  {
+    "label": "noise",
+    "why": "Lightweight pooling/attention add-ons to BERT's [CLS] with marginal low-resource gains; minor tweak.",
+    "arxiv_id": "2505.15696",
+    "title": "MaxPoolBERT: Enhancing BERT Classification via Layer- and Token-Wise Aggregation",
+    "authors": ["Maike Behrendt", "Stefan Sylvius Wagner", "Stefan Harmeling"],
+    "primary_category": "cs.CL",
+    "abstract": "The [CLS] token in BERT is commonly used as a fixed-length representation for classification tasks, yet prior work has shown that both other tokens and intermediate layers encode valuable contextual information. In this work, we study lightweight extensions to BERT that refine the [CLS] representation by aggregating information across layers and tokens. Specifically, we explore three modifications: (i) max-pooling the [CLS] token across multiple layers, (ii) enabling the [CLS] token to attend over the entire final layer using an additional multi-head attention (MHA) layer, and (iii) combining max-pooling across the full sequence with MHA. Our approach, called MaxPoolBERT, enhances BERT's classification accuracy (especially on low-resource tasks) without requiring new pre-training or significantly increasing model size. Experiments on the GLUE benchmark show that MaxPoolBERT consistently achieves a better performance than the standard BERT base model on low resource tasks of the GLUE benchmark.",
+    "comment": null
+  },
+  {
+    "label": "noise",
+    "why": "Standard CNN with residual/attention blocks for crop-leaf disease images; narrow agricultural application.",
+    "arxiv_id": "2503.08348",
+    "title": "Design and Implementation of FourCropNet: A CNN-Based System for Efficient Multi-Crop Disease Detection and Management",
+    "authors": ["H. P. Khandagale", "Sangram Patil", "V. S. Gavali", "S. V. Chavan", "P. P. Halkarnikar", "Prateek A. Meshram"],
+    "primary_category": "cs.CV",
+    "abstract": "Plant disease detection is a critical task in agriculture, directly impacting crop yield, food security, and sustainable farming practices. This study proposes FourCropNet, a novel deep learning model designed to detect diseases in multiple crops, including CottonLeaf, Grape, Soybean, and Corn. The model leverages an advanced architecture comprising residual blocks for efficient feature extraction, attention mechanisms to enhance focus on disease-relevant regions, and lightweight layers for computational efficiency. These components collectively enable FourCropNet to achieve superior performance across varying datasets and class complexities, from single-crop datasets to combined datasets with 15 classes. The proposed model was evaluated on diverse datasets, demonstrating high accuracy, specificity, sensitivity, and F1 scores. Notably, FourCropNet achieved the highest accuracy of 99.7% for Grape, 99.5% for Corn, and 95.3% for the combined dataset. Comparative analysis shows that FourCropNet consistently outperforms state-of-the-art models such as MobileNet, VGG16, and EfficientNet across various metrics.",
+    "comment": null
+  },
+  {
+    "label": "noise",
+    "why": "Literature review of pest-classification deep-learning studies; narrow application survey, no new method.",
+    "arxiv_id": "2507.01494",
+    "title": "Crop Pest Classification Using Deep Learning Techniques: A Review",
+    "authors": ["Muhammad Hassam Ejaz", "Muhammad Bilal", "Usman Habib", "Muhammad Attique", "Tae-Sun Chung"],
+    "primary_category": "cs.CV",
+    "abstract": "Insect pests continue to bring a serious threat to crop yields around the world, and traditional methods for monitoring them are often slow, manual, and difficult to scale. In recent years, deep learning has emerged as a powerful solution, with techniques like convolutional neural networks (CNNs), vision transformers (ViTs), and hybrid models gaining popularity for automating pest detection. This review looks at 37 carefully selected studies published between 2018 and 2025, all focused on AI-based pest classification. The selected research is organized by crop type, pest species, model architecture, dataset usage, and key technical challenges. The early studies relied heavily on CNNs but latest work is shifting toward hybrid and transformer-based models that deliver higher accuracy and better contextual understanding. Still, challenges like imbalanced datasets, difficulty in detecting small pests, limited generalizability, and deployment on edge devices remain significant hurdles. Overall, this review offers a structured overview of the field, highlights useful datasets, and outlines the key challenges and future directions for AI-based pest monitoring systems.",
+    "comment": "Review article; updated author list and formatting"
+  },
+  {
+    "label": "noise",
+    "why": "Undergraduate-project LSTM + VADER sentiment on four NASDAQ tech stocks; standard methods, narrow application.",
+    "arxiv_id": "2505.05325",
+    "title": "Advanced Stock Market Prediction Using Long Short-Term Memory Networks: A Comprehensive Deep Learning Framework",
+    "authors": ["Rajneesh Chaudhary"],
+    "primary_category": "cs.CE",
+    "abstract": "Predicting stock market movements remains a persistent challenge due to the inherently volatile, non-linear, and stochastic nature of financial time series data. This paper introduces a deep learning-based framework employing Long Short-Term Memory (LSTM) networks to forecast the closing stock prices of major technology firms: Apple, Google, Microsoft, and Amazon, listed on NASDAQ. Historical data was sourced from Yahoo Finance and processed using normalization and feature engineering techniques. The proposed model achieves a Mean Absolute Percentage Error (MAPE) of 2.72 on unseen test data, significantly outperforming traditional models like ARIMA. To further enhance predictive accuracy, sentiment scores were integrated using real-time news articles and social media data, analyzed through the VADER sentiment analysis tool. A web application was also developed to provide real-time visualizations of stock price forecasts, offering practical utility for both individual and institutional investors.",
+    "comment": "11 pages, 17 figures, pre-final year undergraduate project"
+  },
+  {
+    "label": "noise",
+    "why": "Applied empirical comparison of off-the-shelf LLMs fine-tuned for sentiment in four specific languages; no methodological novelty.",
+    "arxiv_id": "2408.02044",
+    "title": "Fine-tuning multilingual language models in Twitter/X sentiment analysis: a study on Eastern-European V4 languages",
+    "authors": ["Tomáš Filip", "Martin Pavlíček", "Petr Sosík"],
+    "primary_category": "cs.CL",
+    "abstract": "The aspect-based sentiment analysis (ABSA) is a standard NLP task with numerous approaches and benchmarks, where large language models (LLM) represent the current state-of-the-art. We focus on ABSA subtasks based on Twitter/X data in underrepresented languages. On such narrow tasks, small tuned language models can often outperform universal large ones, providing available and cheap solutions. We fine-tune several LLMs (BERT, BERTweet, Llama2, Llama3, Mistral) for classification of sentiment towards Russia and Ukraine in the context of the ongoing military conflict. The training/testing dataset was obtained from the academic API from Twitter/X during 2023, narrowed to the languages of the V4 countries (Czech Republic, Slovakia, Poland, Hungary). Then we measure their performance under a variety of settings including translations, sentiment targets, in-context learning and more, using GPT4 as a reference model. We document several interesting phenomena demonstrating, among others, that some models are much better fine-tunable on multilingual Twitter tasks than others, and that they can reach the SOTA level with a very small training set.",
+    "comment": "18 pages, 4 figures"
+  },
+  {
+    "label": "noise",
+    "why": "Applies five standard ML algorithms to a local educational dataset plus a teaching intervention; narrow application.",
+    "arxiv_id": "2502.03143",
+    "title": "Machine Learning-Driven Student Performance Prediction for Enhancing Tiered Instruction",
+    "authors": ["Yawen Chen", "Jiande Sun", "Jinhui Wang", "Liang Zhao", "Xinmin Song", "Linbo Zhai"],
+    "primary_category": "cs.LG",
+    "abstract": "Student performance prediction is one of the most important subjects in educational data mining. As a modern technology, machine learning offers powerful capabilities in feature extraction and data modeling, providing essential support for diverse application scenarios. However, despite extensive prediction experiments, machine learning methods have not been effectively integrated into practical teaching strategies, hindering their application in modern education. In addition, massive features as input variables for machine learning algorithms often leads to information redundancy, which can negatively impact prediction accuracy. Therefore, how to effectively use machine learning methods to predict student performance and integrate the prediction results with actual teaching scenarios is a worthy research subject. To this end, this study integrates the results of machine learning-based student performance prediction with tiered instruction. Specifically, we collect original educational data and perform feature selection to reduce information redundancy. Then, the performance of five representative machine learning methods is analyzed and discussed with Random Forest showing the best performance. Furthermore, based on the results of the classification of students, tiered instruction is applied accordingly, and different teaching objectives and contents are set for all levels of students.",
+    "comment": null
+  }
+]

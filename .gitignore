@@ -27,6 +27,9 @@ frontend/.vite/
 # Data — never commit ingested papers, parsed PDFs, or local dumps
 data/
 *.pdf
+# ...but the curated classifier benchmark is committed test data, not a runtime dump.
+!backend/tests/data/
+!backend/tests/data/**
 
 # Editor / OS
 .DS_Store

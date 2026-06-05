@@ -24,6 +24,7 @@ DEFAULT_ARXIV_CATEGORIES = [
 ]
 
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+LLMBackend = Literal["auto", "claude_code", "litellm"]
 
 
 class Settings(BaseSettings):
@@ -60,6 +61,13 @@ class Settings(BaseSettings):
     arxiv_max_attempts: int = Field(default=6, ge=1)
     arxiv_retry_base_delay_seconds: float = Field(default=3.0, gt=0)
     arxiv_retry_max_delay_seconds: float = Field(default=60.0, gt=0)
+
+    # --- LLM / classification ---
+    # "auto" prefers the Claude Code SDK (subscription) and falls back to LiteLLM.
+    llm_backend: LLMBackend = Field(default="auto")
+    classification_model: str = Field(default="claude-haiku-4-5-20251001")
+    llm_timeout_seconds: float = Field(default=60.0, gt=0)
+    llm_max_concurrency: int = Field(default=4, gt=0)
 
     # --- Workflow / runtime ---
     workflow_timeout_seconds: int = Field(default=86_400, gt=0, description="Max seconds per run.")
