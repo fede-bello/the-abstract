@@ -53,6 +53,8 @@ class Settings(BaseSettings):
     anthropic_api_key: SecretStr = SecretStr("")
     llama_cloud_api_key: SecretStr = SecretStr("")
     supabase_db_url: SecretStr = SecretStr("")
+    smtp_username: SecretStr = SecretStr("")
+    smtp_password: SecretStr = SecretStr("")
 
     # --- Ingestion ---
     arxiv_categories: list[str] = Field(
@@ -94,6 +96,13 @@ class Settings(BaseSettings):
     embedding_device: str = Field(default="cpu")
     chunk_size: int = Field(default=512, gt=0)
     chunk_overlap: int = Field(default=64, ge=0)
+
+    # --- Email digest (SMTP; defaults target Gmail, but any provider works via config) ---
+    smtp_host: str = Field(default="smtp.gmail.com")
+    smtp_port: int = Field(default=587, gt=0)
+    smtp_starttls: bool = Field(default=True)
+    email_from: str = Field(default="")  # "Name <addr>"; blank falls back to smtp_username
+    weekly_insight_max_output_tokens: int = Field(default=512, gt=0)
 
     # --- Storage ---
     data_dir: Path = Field(default=Path("data"))

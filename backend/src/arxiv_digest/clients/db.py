@@ -10,6 +10,7 @@ import json
 
 import asyncpg
 from pgvector.asyncpg import register_vector
+from pydantic import BaseModel
 
 from arxiv_digest.clients.arxiv import Paper
 from arxiv_digest.config import settings
@@ -48,8 +49,16 @@ _DELETE_CHUNKS_SQL = "delete from paper_chunks where arxiv_id = $1"
 _INSERT_CHUNK_SQL = (
     "insert into paper_chunks (arxiv_id, chunk_index, content, embedding) values ($1, $2, $3, $4)"
 )
+_SELECT_ACTIVE_SUBSCRIBERS_SQL = "select email, interests from subscribers where is_active = true"
 
 _pool: asyncpg.Pool | None = None
+
+
+class Subscriber(BaseModel):
+    """A digest recipient. ``interests`` are categorization topic titles; empty means all topics."""
+
+    email: str
+    interests: list[str]
 
 
 class DBError(RuntimeError):
@@ -122,3 +131,15 @@ async def store_papers(
             except asyncpg.PostgresError as exc:
                 msg = f"failed to store {paper.arxiv_id}: {exc}"
                 raise DBError(msg) from exc
+
+
+async def get_active_subscribers() -> list[Subscriber]:
+    """Return every active digest recipient with their topic interests."""
+    pool = await _get_pool()
+    try:
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(_SELECT_ACTIVE_SUBSCRIBERS_SQL)
+    except asyncpg.PostgresError as exc:
+        msg = f"failed to read subscribers: {exc}"
+        raise DBError(msg) from exc
+    return [Subscriber(email=row["email"], interests=list(row["interests"])) for row in rows]
