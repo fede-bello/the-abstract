@@ -6,10 +6,10 @@ under `arxiv_digest.steps`, then returns the event that triggers the next stage.
 Orchestration concerns — order, error handling, and branching — live here in one
 readable place; the heavy lifting lives in the step modules.
 
-Classification and parsing are interleaved per paper to maximise concurrency: each
-paper is classified independently, and a paper marked *useful* starts parsing
-immediately (without waiting for the rest to be classified), while *noise* papers
-skip the expensive parse entirely. The fan-in happens after parsing.
+Per paper, classification fans out first; a *useful* paper is then parsed and
+categorized **in parallel** (categorization needs only the abstract, so it doesn't
+wait on the slow PDF parse), and a per-paper join merges the two before fan-in. *Noise*
+papers skip both. The fan-in collects every paper's outcome into one event.
 """
 
 import logging
@@ -19,14 +19,19 @@ from workflows.events import StartEvent, StopEvent
 
 from arxiv_digest.clients.parse import ParseError
 from arxiv_digest.config import settings
-from arxiv_digest.steps.categorization.events import CategorizedEvent
-from arxiv_digest.steps.categorization.step import categorize_papers
+from arxiv_digest.steps.categorization.events import (
+    CategorizedEvent,
+    CategorizePaperEvent,
+    PaperResolvedEvent,
+    TopicsAssignedEvent,
+)
+from arxiv_digest.steps.categorization.step import categorize_paper
 from arxiv_digest.steps.classification.events import ClassifyPaperEvent
 from arxiv_digest.steps.classification.step import classify_paper
 from arxiv_digest.steps.distribution.step import send_digest
 from arxiv_digest.steps.ingestion.events import PapersFetchedEvent
 from arxiv_digest.steps.ingestion.step import fetch_papers
-from arxiv_digest.steps.parsing.events import PaperResolvedEvent, ParsedEvent, ParsePaperEvent
+from arxiv_digest.steps.parsing.events import ParsedPaperEvent, ParsePaperEvent
 from arxiv_digest.steps.parsing.step import parse_paper
 from arxiv_digest.steps.storage.events import StoredEvent
 from arxiv_digest.steps.storage.step import store_papers
@@ -36,10 +41,11 @@ from arxiv_digest.steps.summarization.step import summarize_papers
 logger = logging.getLogger(__name__)
 
 _PAPER_TOTAL = "paper_total"
+_JOIN = "join_parts"
 
 
 class DigestWorkflow(Workflow):
-    """Ingest -> classify -> parse -> categorize -> summarize -> store -> distribute."""
+    """Ingest -> classify -> (parse ∥ categorize) -> summarize -> store -> distribute."""
 
     @step
     async def ingest(self, ev: StartEvent) -> PapersFetchedEvent:
@@ -57,51 +63,82 @@ class DigestWorkflow(Workflow):
     @step
     async def classify(
         self, ctx: Context, ev: PapersFetchedEvent
-    ) -> ClassifyPaperEvent | ParsedEvent | None:
-        """Fan out one classification per paper, bounded by ``llm_max_concurrency``.
+    ) -> ClassifyPaperEvent | CategorizedEvent | None:
+        """Fan out one classification per paper.
 
-        With no papers, no worker ever runs, so emit an empty ``ParsedEvent``
+        With no papers, no worker ever runs, so emit an empty ``CategorizedEvent``
         directly rather than waiting on a fan-in that would never complete.
         """
         if not ev.papers:
-            return ParsedEvent(papers=[])
+            return CategorizedEvent(papers=[])
         await ctx.store.set(_PAPER_TOTAL, len(ev.papers))
         for paper in ev.papers:
             ctx.send_event(ClassifyPaperEvent(paper=paper))
         return None
 
     @step(num_workers=settings.llm_max_concurrency)
-    async def classify_one(self, ev: ClassifyPaperEvent) -> ParsePaperEvent | PaperResolvedEvent:
-        """Classify a single paper; route useful papers to parsing, drop noise."""
+    async def classify_one(
+        self, ctx: Context, ev: ClassifyPaperEvent
+    ) -> ParsePaperEvent | CategorizePaperEvent | PaperResolvedEvent | None:
+        """Classify a paper; send useful ones to parse and categorize in parallel, drop noise."""
         result = await classify_paper(ev.paper)
-        if result.label == "useful":
-            return ParsePaperEvent(paper=ev.paper)
-        return PaperResolvedEvent(paper=None)
+        if result.label != "useful":
+            return PaperResolvedEvent(paper=None)
+        ctx.send_event(ParsePaperEvent(paper=ev.paper))
+        ctx.send_event(CategorizePaperEvent(paper=ev.paper))
+        return None
 
     @step(num_workers=settings.parse_max_concurrency)
-    async def parse_one(self, ev: ParsePaperEvent) -> PaperResolvedEvent:
-        """Parse a single useful paper; drop it (don't fail the run) if parsing errors."""
+    async def parse_one(self, ev: ParsePaperEvent) -> ParsedPaperEvent:
+        """Parse a useful paper; drop it (don't fail the run) if parsing errors."""
         try:
             parsed = await parse_paper(ev.paper)
         except ParseError:
             logger.warning("parse failed for %s; dropping", ev.paper.arxiv_id, exc_info=True)
+            return ParsedPaperEvent(arxiv_id=ev.paper.arxiv_id, paper=None)
+        return ParsedPaperEvent(arxiv_id=ev.paper.arxiv_id, paper=parsed)
+
+    @step(num_workers=settings.llm_max_concurrency)
+    async def categorize_one(self, ev: CategorizePaperEvent) -> TopicsAssignedEvent:
+        """Tag a useful paper; fall back to no tags (kept, untagged) if the LLM errors."""
+        try:
+            topics = await categorize_paper(ev.paper)
+        except Exception:  # noqa: BLE001 — any backend failure (LLMError/timeout/provider) → untagged
+            logger.warning("categorize failed for %s; no tags", ev.paper.arxiv_id, exc_info=True)
+            topics = []
+        return TopicsAssignedEvent(arxiv_id=ev.paper.arxiv_id, topics=topics)
+
+    @step(num_workers=1)
+    async def join_paper(
+        self, ctx: Context, ev: ParsedPaperEvent | TopicsAssignedEvent
+    ) -> PaperResolvedEvent | None:
+        """Merge a paper's parse result and topics once both arrive (serialized, 1 worker)."""
+        state = await ctx.store.get(_JOIN, default={})
+        entry = state.setdefault(ev.arxiv_id, {})
+        if isinstance(ev, ParsedPaperEvent):
+            entry["paper"] = ev.paper
+        else:
+            entry["topics"] = ev.topics
+        if "paper" not in entry or "topics" not in entry:
+            await ctx.store.set(_JOIN, state)
+            return None
+        del state[ev.arxiv_id]
+        await ctx.store.set(_JOIN, state)
+        paper = entry["paper"]
+        if paper is None:
             return PaperResolvedEvent(paper=None)
-        return PaperResolvedEvent(paper=parsed)
+        return PaperResolvedEvent(paper=paper.model_copy(update={"topics": entry["topics"]}))
 
     @step
-    async def collect_parsed(self, ctx: Context, ev: PaperResolvedEvent) -> ParsedEvent | None:
+    async def collect_resolved(
+        self, ctx: Context, ev: PaperResolvedEvent
+    ) -> CategorizedEvent | None:
         """Fan in every per-paper outcome, keeping the useful papers that parsed."""
         total = await ctx.store.get(_PAPER_TOTAL)
         done = ctx.collect_events(ev, [PaperResolvedEvent] * total)
         if done is None:
             return None
         papers = [e.paper for e in done if e.paper is not None]
-        return ParsedEvent(papers=papers)
-
-    @step
-    async def categorize(self, ev: ParsedEvent) -> CategorizedEvent:
-        """Assign one or more topic tags to each paper."""
-        papers = await categorize_papers(ev.papers)
         return CategorizedEvent(papers=papers)
 
     @step

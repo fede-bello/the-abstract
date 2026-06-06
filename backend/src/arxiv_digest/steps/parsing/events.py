@@ -6,23 +6,16 @@ from arxiv_digest.clients.arxiv import Paper
 
 
 class ParsePaperEvent(Event):
-    """A useful paper to parse (fan-out unit, emitted only for useful papers)."""
+    """A useful paper to parse (fan-out unit, runs in parallel with categorization)."""
 
     paper: Paper
 
 
-class PaperResolvedEvent(Event):
-    """Terminal per-paper outcome: the parsed paper, or ``None`` if dropped.
+class ParsedPaperEvent(Event):
+    """The parse outcome for one paper, keyed by id for the per-paper join.
 
-    A paper is dropped when it was classified as noise, or when parsing failed.
-    Every fanned-out paper produces exactly one of these, so the fan-in can count
-    them against the total.
+    ``paper`` is ``None`` when parsing failed (the paper is then dropped).
     """
 
+    arxiv_id: str
     paper: Paper | None
-
-
-class ParsedEvent(Event):
-    """Papers with full parsed content, ready for categorization."""
-
-    papers: list[Paper]
