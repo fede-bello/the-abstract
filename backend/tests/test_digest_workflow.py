@@ -37,6 +37,10 @@ async def _fake_summarize(paper: Paper) -> Summary:
     return Summary(short=f"short-{paper.arxiv_id}", long="long", conclusions="impact")
 
 
+async def _fake_store(papers: list[Paper]) -> list[Paper]:
+    return papers
+
+
 def _patch(monkeypatch, papers: list[Paper]) -> None:
     async def fake_fetch(max_results: int, days_back: int) -> list[Paper]:
         return papers
@@ -46,6 +50,7 @@ def _patch(monkeypatch, papers: list[Paper]) -> None:
     monkeypatch.setattr(digest, "parse_paper", _fake_parse)
     monkeypatch.setattr(digest, "categorize_paper", _fake_categorize)
     monkeypatch.setattr(digest, "summarize_paper", _fake_summarize)
+    monkeypatch.setattr(digest, "store_papers", _fake_store)
 
 
 async def test_keeps_useful_parsed_drops_noise_and_failures(monkeypatch):
@@ -64,6 +69,7 @@ async def test_keeps_useful_parsed_drops_noise_and_failures(monkeypatch):
     assert all(p.full_text == f"md-{p.arxiv_id}" for p in result)
     assert all(p.topics == [f"topic-{p.arxiv_id}"] for p in result)
     assert all(p.summary is not None and p.summary.short == f"short-{p.arxiv_id}" for p in result)
+    assert all(p.classification_rationale == "r" for p in result)
 
 
 async def test_empty_run_completes_with_no_papers(monkeypatch):

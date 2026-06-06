@@ -85,8 +85,9 @@ class DigestWorkflow(Workflow):
         result = await classify_paper(ev.paper)
         if result.label != "useful":
             return PaperResolvedEvent(paper=None)
-        ctx.send_event(ParsePaperEvent(paper=ev.paper))
-        ctx.send_event(CategorizePaperEvent(paper=ev.paper))
+        paper = ev.paper.model_copy(update={"classification_rationale": result.rationale})
+        ctx.send_event(ParsePaperEvent(paper=paper))
+        ctx.send_event(CategorizePaperEvent(paper=paper))
         return None
 
     @step(num_workers=settings.parse_max_concurrency)
