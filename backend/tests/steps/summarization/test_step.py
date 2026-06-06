@@ -10,7 +10,7 @@ _SUMMARY = Summary(short="- a\n- b", long="para one.\n\npara two.", conclusions=
 
 
 async def test_summarize_paper_returns_the_models_summary(monkeypatch):
-    async def fake_complete(system, user, schema, *, model, max_tokens):
+    async def fake_complete(system, user, schema, **kwargs):
         return _SUMMARY
 
     monkeypatch.setattr(summ_step, "complete_structured", fake_complete)
@@ -21,7 +21,7 @@ async def test_summarize_paper_returns_the_models_summary(monkeypatch):
 async def test_summarize_paper_feeds_the_parsed_body_to_the_model(monkeypatch):
     seen = {}
 
-    async def fake_complete(system, user, schema, *, model, max_tokens):
+    async def fake_complete(system, user, schema, **kwargs):
         seen["user"] = user
         return _SUMMARY
 

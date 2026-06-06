@@ -10,6 +10,7 @@ from pathlib import Path
 
 from llama_cloud import AsyncLlamaCloud
 
+from arxiv_digest.clients.usage import record_parse_usage
 from arxiv_digest.config import settings
 
 # Pin the parse API to the latest published spec; the SDK also accepts dated versions.
@@ -52,6 +53,8 @@ async def parse_pdf_to_markdown(pdf_path: Path) -> str:
     # The v2 result returns markdown per page; join them into one document. A page
     # can be a "failed page" variant with no markdown, so read it defensively and skip.
     pages = result.markdown.pages if result.markdown else []
+    # Record usage before the empty-markdown guard below: the job ran and is billable either way.
+    await record_parse_usage(pages=len(pages), tier=settings.parse_tier)
     page_markdowns = [getattr(page, "markdown", None) for page in pages]
     full_text = "\n\n".join(md for md in page_markdowns if md)
     if not full_text:

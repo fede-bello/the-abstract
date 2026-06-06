@@ -96,11 +96,13 @@ async def _complete_claude_code(system: str, user: str, schema: type[T], model: 
     return _parse_json(text, schema)
 
 
-async def _complete_litellm(
-    system: str, user: str, schema: type[T], model: str, max_tokens: int
+async def _complete_litellm(  # noqa: PLR0913 — independent passthrough args, not a god-function
+    system: str, user: str, schema: type[T], model: str, max_tokens: int, label: str | None
 ) -> T:
     """Single-turn completion via LiteLLM (API key; provider-swappable by model string)."""
     from litellm import acompletion
+
+    from arxiv_digest.clients.usage import record_litellm_usage
 
     response = await acompletion(
         model=f"anthropic/{model}",
@@ -114,28 +116,32 @@ async def _complete_litellm(
         timeout=settings.llm_timeout_seconds,
         num_retries=2,
     )
+    await record_litellm_usage(stage=label, model=model, response=response)
     return _parse_json(response.choices[0].message.content or "", schema)
 
 
-async def complete_structured(
+async def complete_structured(  # noqa: PLR0913 — keyword-only options, not a god-function
     system: str,
     user: str,
     schema: type[T],
     *,
     model: str | None = None,
     max_tokens: int | None = None,
+    label: str | None = None,
 ) -> T:
     """Return a structured completion, honoring ``settings.llm_backend`` with auto-fallback.
 
     ``model`` and ``max_tokens`` default to the classification model and limit; pass them
     to override per call (e.g. a stronger model with more headroom for summarization).
+    ``label`` names the calling pipeline stage; it tags the recorded usage row (LiteLLM path
+    only — Claude Code subscription calls aren't billed and aren't recorded).
     """
     model = model or settings.classification_model
     max_tokens = max_tokens or _MAX_OUTPUT_TOKENS
     if settings.llm_backend == "claude_code":
         return await _complete_claude_code(system, user, schema, model)
     if settings.llm_backend == "litellm":
-        return await _complete_litellm(system, user, schema, model, max_tokens)
+        return await _complete_litellm(system, user, schema, model, max_tokens, label)
 
     # auto: prefer the Claude Code SDK, fall back to LiteLLM on any failure.
     if _claude_code_available():
@@ -143,4 +149,4 @@ async def complete_structured(
             return await _complete_claude_code(system, user, schema, model)
         except Exception:  # noqa: BLE001 — any SDK/auth failure should fall back to LiteLLM
             logger.warning("Claude Code SDK failed; falling back to LiteLLM", exc_info=True)
-    return await _complete_litellm(system, user, schema, model, max_tokens)
+    return await _complete_litellm(system, user, schema, model, max_tokens, label)

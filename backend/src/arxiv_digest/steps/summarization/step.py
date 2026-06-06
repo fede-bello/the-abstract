@@ -38,4 +38,5 @@ async def summarize_paper(paper: Paper) -> Summary:
         Summary,
         model=settings.summarization_model,
         max_tokens=settings.summarization_max_output_tokens,
+        label="summarization",
     )
