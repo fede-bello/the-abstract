@@ -33,8 +33,6 @@ arxiv_pdf_download_timeout_seconds = 60.0
 # LiteLLM. Other options: "claude_code", "litellm".
 llm_backend = "auto"
 classification_model = "claude-haiku-4-5-20251001"
-# Summaries are longer-form than classification, so default to a stronger model with
-# more output headroom (the token cap applies to the LiteLLM backend).
 summarization_model = "claude-sonnet-4-6"
 summarization_max_output_tokens = 2048
 llm_timeout_seconds = 60.0

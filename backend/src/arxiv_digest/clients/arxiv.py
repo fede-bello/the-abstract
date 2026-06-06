@@ -37,9 +37,9 @@ class Author(BaseModel):
 class Summary(BaseModel):
     """Generated summaries for one paper — the LLM output schema and the stored value."""
 
-    short: str  # 3-4 bullet points covering key contributions/findings
-    long: str  # ~2 paragraphs covering methodology, results, implications
-    conclusions: str  # brief note on significance/impact
+    short: str
+    long: str
+    conclusions: str
 
 
 class Paper(BaseModel):
