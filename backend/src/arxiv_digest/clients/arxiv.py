@@ -55,7 +55,6 @@ class Paper(BaseModel):
     updated: datetime
     pdf_url: str
     pdf_path: Path | None = None
-    # Full parsed text (markdown), populated by the parsing step for useful papers.
     full_text: str | None = None
 
 

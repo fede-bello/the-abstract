@@ -10,19 +10,6 @@ Classification and parsing are interleaved per paper to maximise concurrency: ea
 paper is classified independently, and a paper marked *useful* starts parsing
 immediately (without waiting for the rest to be classified), while *noise* papers
 skip the expensive parse entirely. The fan-in happens after parsing.
-
-Event flow:
-
-    StartEvent           ->  ingest              ->  PapersFetchedEvent
-    PapersFetchedEvent   ->  classify (fan-out)  ->  ClassifyPaperEvent (per paper)
-    ClassifyPaperEvent   ->  classify_one        ->  ParsePaperEvent (useful)
-                                                  |  PaperResolvedEvent(None) (noise)
-    ParsePaperEvent      ->  parse_one           ->  PaperResolvedEvent (parsed / dropped)
-    PaperResolvedEvent   ->  collect_parsed      ->  ParsedEvent (fan-in)
-    ParsedEvent          ->  categorize          ->  CategorizedEvent
-    CategorizedEvent     ->  summarize           ->  SummarizedEvent
-    SummarizedEvent      ->  store               ->  StoredEvent
-    StoredEvent          ->  distribute          ->  StopEvent
 """
 
 import logging
