@@ -30,7 +30,7 @@ backend/src/arxiv_digest/
 │   └── <stage>/      #   step.py (pure async logic fn) + events.py (the stage's event class)
 ├── clients/          # llm.py, db.py, arxiv.py, parse.py — external I/O, called BY logic fns
 ├── api/              # FastAPI app — thin HTTP layer over the workflows
-└── config.py         # env-driven configuration
+└── config.py         # Settings: config.toml (non-secret) + env/.env (secrets)
 frontend/             # Vite + React SPA — talks to the API only
 ```
 
@@ -71,7 +71,7 @@ This is the most important step. For every new step, event, client function, wor
    - **Clients** — before writing any external call, check `clients/` for an existing function. Don't re-instantiate the LLM or DB client inside a step; reuse the shared client/factory (and prefer LlamaIndex `Resource` injection where the project uses it).
    - **Events** — check the relevant `steps/<stage>/events.py` before defining a new event. An event with the same payload under a new name is duplication.
    - **Prompts / schemas** — shared prompt templates, Pydantic output schemas, and embedding helpers should be reused, not re-pasted per step.
-   - **Config** — categories, arXiv category list, schedule day, model names, and thresholds come from `config.py` (env-driven). Never hardcode them in a step.
+   - **Config** — categories, arXiv category list, schedule day, model names, and thresholds are `Settings` fields in `config.py`, with non-secret defaults in `config.toml`. Never hardcode them in a step.
    - **API** — shared request/response Pydantic models and dependencies (`Depends(...)`) rather than re-deriving them per route.
    - **Frontend** — check `frontend/src/` for an existing API-client function, hook, type, or UI primitive before adding a new one.
 
@@ -118,8 +118,8 @@ This is the most important step. For every new step, event, client function, wor
 - **TypeScript**: no `any` (use `unknown` if truly unknown); API responses are typed.
 
 ### Configuration & OSS hygiene
-- This is an open-source project — it must run for anyone who clones it. No hardcoded categories, schedules, model names, or magic thresholds; they belong in `config.py` / env.
-- When a new env var is introduced, `.env.example` must be updated to document it.
+- This is an open-source project — it must run for anyone who clones it. No hardcoded categories, schedules, model names, or magic thresholds; they belong in `config.py` (defaults in `config.toml`).
+- When a new `Settings` field is introduced, add its default to `config.toml`; add to `.env.example` only if it's a secret.
 - No personal data in the repo (real mailing lists, private API keys, sample emails with real addresses) — sample/synthetic data only.
 
 ### Security

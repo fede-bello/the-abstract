@@ -55,7 +55,7 @@ Complements the layering rules in `CLAUDE.md`: **clients raise, the workflow met
 ## Constants and configuration — no magic literals
 
 - `if minutes >= MIN_MINUTES_THRESHOLD:` not `if minutes >= 600:`. Named constants tell the reader *why* the value matters.
-- **Anything a forker might tune** — model names, thresholds, concurrency, timeouts, categories, schedule — is a field on `Settings` in `config.py`, read from the environment, and documented in `.env.example`. Never hardcode it in a step or client. (See `classification_model`, `llm_max_concurrency`, etc.)
+- **Anything a forker might tune** — model names, thresholds, concurrency, timeouts, categories, schedule — is a field on `Settings` in `config.py`, with its non-secret default in `config.toml` (env vars override). Secrets stay in `.env`/`.env.example`. Never hardcode it in a step or client. (See `classification_model`, `llm_max_concurrency`, etc.)
 - **Genuine fixed constants** (not env-tunable) live as module-level `UPPER_SNAKE_CASE` near their use, like `_RETRYABLE_STATUSES` in `clients/arxiv.py` or `_MAX_OUTPUT_TOKENS` in `clients/llm.py`. A leading underscore marks them module-private.
 
 ## Data access and external I/O
