@@ -52,6 +52,7 @@ async def _summarize_week(papers: list[Paper]) -> str:
             WeeklyInsight,
             model=settings.summarization_model,
             max_tokens=settings.weekly_insight_max_output_tokens,
+            label="distribution",
         )
     except Exception:  # noqa: BLE001 — best-effort; the digest still sends without the insight
         logger.warning("weekly insight failed; sending digest without it", exc_info=True)

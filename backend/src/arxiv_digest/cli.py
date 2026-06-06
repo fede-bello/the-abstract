@@ -21,6 +21,37 @@ def _positive_int(value: str) -> int:
     return parsed
 
 
+_DEFAULT_USAGE_WEEKS = 8
+
+
+async def _run_usage(weeks: int) -> None:
+    """Print the weekly LLM + parse usage and estimated cost roll-up, newest first."""
+    from arxiv_digest.clients.db import fetch_weekly_usage
+
+    if not settings.supabase_db_url.get_secret_value():
+        print("SUPABASE_DB_URL is not set — no usage database to read.")
+        return
+
+    rows = await fetch_weekly_usage(weeks)
+    if not rows:
+        print("No usage recorded yet.")
+        return
+
+    header = (
+        f"{'week':<12} {'llm':>5} {'in_tok':>9} {'out_tok':>9} "
+        f"{'parse':>6} {'pages':>6} {'llm_$':>9} {'parse_$':>9} {'total_$':>9}"
+    )
+    print(header)
+    print("-" * len(header))
+    for row in rows:
+        week = f"{row.week:%Y-%m-%d}"
+        print(
+            f"{week:<12} {row.llm_calls:>5} {row.input_tokens:>9} {row.output_tokens:>9} "
+            f"{row.parse_jobs:>6} {row.parse_pages:>6} {row.llm_cost_usd:>9.4f} "
+            f"{row.parse_cost_usd:>9.4f} {row.total_cost_usd:>9.4f}"
+        )
+
+
 async def _run_ingest(max_results: int, days_back: int) -> None:
     """Run the ingestion pipeline once and print the fetched papers with their dates."""
     # The timeout (default 24h) must outlast a long arXiv backoff; see settings.
@@ -48,12 +79,22 @@ def main() -> None:
         "--days-back", type=_positive_int, help="Only fetch papers from the last N days."
     )
 
+    usage = subparsers.add_parser("usage", help="Show weekly LLM + parse usage and estimated cost.")
+    usage.add_argument(
+        "--weeks",
+        type=_positive_int,
+        default=_DEFAULT_USAGE_WEEKS,
+        help=f"How many recent weeks to show (default {_DEFAULT_USAGE_WEEKS}).",
+    )
+
     args = parser.parse_args()
 
     if args.command == "ingest":
         max_results = args.max_results if args.max_results is not None else settings.max_results
         days_back = args.days_back if args.days_back is not None else settings.days_back
         asyncio.run(_run_ingest(max_results, days_back))
+    elif args.command == "usage":
+        asyncio.run(_run_usage(args.weeks))
 
 
 if __name__ == "__main__":

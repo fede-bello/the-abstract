@@ -7,6 +7,7 @@ which bypasses RLS; the schema itself lives in ``supabase/migrations/``.
 """
 
 import json
+from datetime import datetime
 
 import asyncpg
 from pgvector.asyncpg import register_vector
@@ -51,6 +52,27 @@ _INSERT_CHUNK_SQL = (
 )
 _SELECT_ACTIVE_SUBSCRIBERS_SQL = "select email, interests from subscribers where is_active = true"
 
+_USAGE_COLUMNS = (
+    "kind",
+    "stage",
+    "model",
+    "input_tokens",
+    "output_tokens",
+    "pages",
+    "tier",
+    "cost_usd",
+)
+_USAGE_PLACEHOLDERS = ", ".join(f"${i}" for i in range(1, len(_USAGE_COLUMNS) + 1))
+_INSERT_USAGE_SQL = (
+    # S608: interpolates only the fixed _USAGE_COLUMNS constant — no user input.
+    f"insert into usage_events ({', '.join(_USAGE_COLUMNS)}) values ({_USAGE_PLACEHOLDERS})"  # noqa: S608
+)
+_SELECT_WEEKLY_USAGE_SQL = (
+    # Re-state `order by` here: the view's own ordering isn't guaranteed to survive an outer LIMIT.
+    "select week, llm_calls, input_tokens, output_tokens, parse_jobs, parse_pages, "
+    "llm_cost_usd, parse_cost_usd, total_cost_usd from weekly_usage order by week desc limit $1"
+)
+
 _pool: asyncpg.Pool | None = None
 
 
@@ -59,6 +81,37 @@ class Subscriber(BaseModel):
 
     email: str
     interests: list[str]
+
+
+class UsageEvent(BaseModel):
+    """One paid external call to bill against the week.
+
+    ``kind`` is 'llm' or 'parse'; the token/page/tier fields are populated only for the
+    relevant kind.
+    """
+
+    kind: str
+    stage: str | None = None
+    model: str | None = None
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    pages: int | None = None
+    tier: str | None = None
+    cost_usd: float = 0.0
+
+
+class WeeklyUsage(BaseModel):
+    """A single week's usage roll-up from the ``weekly_usage`` view."""
+
+    week: datetime
+    llm_calls: int
+    input_tokens: int
+    output_tokens: int
+    parse_jobs: int
+    parse_pages: int
+    llm_cost_usd: float
+    parse_cost_usd: float
+    total_cost_usd: float
 
 
 class DBError(RuntimeError):
@@ -81,6 +134,14 @@ async def _get_pool() -> asyncpg.Pool:
             raise DBError(msg)
         _pool = await asyncpg.create_pool(dsn=dsn, init=_init_connection)
     return _pool
+
+
+async def close_pool() -> None:
+    """Close the shared connection pool if one is open. A no-op otherwise; safe to call twice."""
+    global _pool  # noqa: PLW0603 — module-level singleton for the connection pool
+    if _pool is not None:
+        await _pool.close()
+        _pool = None
 
 
 def _paper_values(paper: Paper) -> tuple[object, ...]:
@@ -131,6 +192,52 @@ async def store_papers(
             except asyncpg.PostgresError as exc:
                 msg = f"failed to store {paper.arxiv_id}: {exc}"
                 raise DBError(msg) from exc
+
+
+async def record_usage_event(event: UsageEvent) -> None:
+    """Insert one usage row. Raises ``DBError`` on failure; callers record best-effort."""
+    pool = await _get_pool()
+    try:
+        async with pool.acquire() as conn:
+            await conn.execute(
+                _INSERT_USAGE_SQL,
+                event.kind,
+                event.stage,
+                event.model,
+                event.input_tokens,
+                event.output_tokens,
+                event.pages,
+                event.tier,
+                event.cost_usd,
+            )
+    except asyncpg.PostgresError as exc:
+        msg = f"failed to record usage event: {exc}"
+        raise DBError(msg) from exc
+
+
+async def fetch_weekly_usage(weeks: int) -> list[WeeklyUsage]:
+    """Return the most recent ``weeks`` weekly usage roll-ups, newest first."""
+    pool = await _get_pool()
+    try:
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(_SELECT_WEEKLY_USAGE_SQL, weeks)
+    except asyncpg.PostgresError as exc:
+        msg = f"failed to read weekly usage: {exc}"
+        raise DBError(msg) from exc
+    return [
+        WeeklyUsage(
+            week=row["week"],
+            llm_calls=row["llm_calls"],
+            input_tokens=row["input_tokens"],
+            output_tokens=row["output_tokens"],
+            parse_jobs=row["parse_jobs"],
+            parse_pages=row["parse_pages"],
+            llm_cost_usd=float(row["llm_cost_usd"]),
+            parse_cost_usd=float(row["parse_cost_usd"]),
+            total_cost_usd=float(row["total_cost_usd"]),
+        )
+        for row in rows
+    ]
 
 
 async def get_active_subscribers() -> list[Subscriber]:

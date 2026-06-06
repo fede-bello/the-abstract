@@ -7,7 +7,7 @@ from arxiv_digest.steps.categorization.step import PaperTopics, categorize_paper
 
 
 async def test_categorize_paper_returns_selected_titles(monkeypatch):
-    async def fake_complete(system, user, schema):
+    async def fake_complete(system, user, schema, *, label):
         return PaperTopics(llms=True, efficient_ml=True)
 
     monkeypatch.setattr(cat_step, "complete_structured", fake_complete)
@@ -18,7 +18,7 @@ async def test_categorize_paper_returns_selected_titles(monkeypatch):
 
 
 async def test_categorize_paper_no_match_returns_empty(monkeypatch):
-    async def fake_complete(system, user, schema):
+    async def fake_complete(system, user, schema, *, label):
         return PaperTopics()
 
     monkeypatch.setattr(cat_step, "complete_structured", fake_complete)

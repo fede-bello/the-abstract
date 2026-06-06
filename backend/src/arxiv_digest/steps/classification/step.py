@@ -56,4 +56,6 @@ async def classify_paper(paper: Paper) -> ClassificationResult:
     For useful papers the ``rationale`` is carried onto the paper in the workflow and
     persisted by the storage step (objective.md §6.1).
     """
-    return await complete_structured(_SYSTEM_PROMPT, _format_metadata(paper), ClassificationResult)
+    return await complete_structured(
+        _SYSTEM_PROMPT, _format_metadata(paper), ClassificationResult, label="classification"
+    )

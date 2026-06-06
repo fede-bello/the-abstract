@@ -159,5 +159,7 @@ def _format_metadata(paper: Paper) -> str:
 
 async def categorize_paper(paper: Paper) -> list[str]:
     """Assign zero or more topic tags to a paper from its metadata."""
-    topics = await complete_structured(_SYSTEM_PROMPT, _format_metadata(paper), PaperTopics)
+    topics = await complete_structured(
+        _SYSTEM_PROMPT, _format_metadata(paper), PaperTopics, label="categorization"
+    )
     return _selected_titles(topics)
