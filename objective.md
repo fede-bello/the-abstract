@@ -120,7 +120,7 @@ Categories are assigned automatically by the AI based on the abstract and full t
 
 ### 5.1 Short Summary
 
-A concise summary of 3–4 bullet points covering the key contributions and findings. Intended for quick scanning in the digest email.
+2–3 concise bullet points (one to two sentences each) covering the key contributions and findings. Intended for quick scanning in the digest email.
 
 ### 5.2 Long Summary
 
