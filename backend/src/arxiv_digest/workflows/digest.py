@@ -8,8 +8,9 @@ readable place; the heavy lifting lives in the step modules.
 
 Per paper, classification fans out first; a *useful* paper is then parsed and
 categorized **in parallel** (categorization needs only the abstract, so it doesn't
-wait on the slow PDF parse), and a per-paper join merges the two before fan-in. *Noise*
-papers skip both. The fan-in collects every paper's outcome into one event.
+wait on the slow PDF parse). Summarization is chained onto the parse branch — it reads
+the parsed body — and a per-paper join merges that branch with the topics before fan-in.
+*Noise* papers skip all of it. The fan-in collects every paper's outcome into one event.
 """
 
 import logging
@@ -35,8 +36,8 @@ from arxiv_digest.steps.parsing.events import ParsedPaperEvent, ParsePaperEvent
 from arxiv_digest.steps.parsing.step import parse_paper
 from arxiv_digest.steps.storage.events import StoredEvent
 from arxiv_digest.steps.storage.step import store_papers
-from arxiv_digest.steps.summarization.events import SummarizedEvent
-from arxiv_digest.steps.summarization.step import summarize_papers
+from arxiv_digest.steps.summarization.events import SummarizePaperEvent
+from arxiv_digest.steps.summarization.step import summarize_paper
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +46,7 @@ _JOIN = "join_parts"
 
 
 class DigestWorkflow(Workflow):
-    """Ingest -> classify -> (parse ∥ categorize) -> summarize -> store -> distribute."""
+    """Ingest -> classify -> ((parse -> summarize) ∥ categorize) -> store -> distribute."""
 
     @step
     async def ingest(self, ev: StartEvent) -> PapersFetchedEvent:
@@ -89,14 +90,27 @@ class DigestWorkflow(Workflow):
         return None
 
     @step(num_workers=settings.parse_max_concurrency)
-    async def parse_one(self, ev: ParsePaperEvent) -> ParsedPaperEvent:
-        """Parse a useful paper; drop it (don't fail the run) if parsing errors."""
+    async def parse_one(self, ev: ParsePaperEvent) -> SummarizePaperEvent | ParsedPaperEvent:
+        """Parse a useful paper, then hand it to summarization; drop it if parsing errors."""
         try:
             parsed = await parse_paper(ev.paper)
         except ParseError:
             logger.warning("parse failed for %s; dropping", ev.paper.arxiv_id, exc_info=True)
             return ParsedPaperEvent(arxiv_id=ev.paper.arxiv_id, paper=None)
-        return ParsedPaperEvent(arxiv_id=ev.paper.arxiv_id, paper=parsed)
+        return SummarizePaperEvent(paper=parsed)
+
+    @step(num_workers=settings.llm_max_concurrency)
+    async def summarize_one(self, ev: SummarizePaperEvent) -> ParsedPaperEvent:
+        """Summarize a parsed paper; keep it untouched (no summary) if the LLM errors."""
+        paper = ev.paper
+        try:
+            summary = await summarize_paper(paper)
+        except Exception:  # noqa: BLE001 — any backend failure (LLMError/timeout/provider) → no summary
+            logger.warning("summarize failed for %s; no summary", paper.arxiv_id, exc_info=True)
+            return ParsedPaperEvent(arxiv_id=paper.arxiv_id, paper=paper)
+        return ParsedPaperEvent(
+            arxiv_id=paper.arxiv_id, paper=paper.model_copy(update={"summary": summary})
+        )
 
     @step(num_workers=settings.llm_max_concurrency)
     async def categorize_one(self, ev: CategorizePaperEvent) -> TopicsAssignedEvent:
@@ -142,13 +156,7 @@ class DigestWorkflow(Workflow):
         return CategorizedEvent(papers=papers)
 
     @step
-    async def summarize(self, ev: CategorizedEvent) -> SummarizedEvent:
-        """Generate short and long summaries for each paper."""
-        papers = await summarize_papers(ev.papers)
-        return SummarizedEvent(papers=papers)
-
-    @step
-    async def store(self, ev: SummarizedEvent) -> StoredEvent:
+    async def store(self, ev: CategorizedEvent) -> StoredEvent:
         """Persist papers, summaries, and embeddings."""
         papers = await store_papers(ev.papers)
         return StoredEvent(papers=papers)

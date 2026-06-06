@@ -73,6 +73,8 @@ class Settings(BaseSettings):
     # --- LLM / classification ---
     llm_backend: LLMBackend = Field(default="auto")
     classification_model: str = Field(default="claude-haiku-4-5-20251001")
+    summarization_model: str = Field(default="claude-sonnet-4-6")
+    summarization_max_output_tokens: int = Field(default=2_048, gt=0)
     llm_timeout_seconds: float = Field(default=60.0, gt=0)
     llm_max_concurrency: int = Field(default=4, gt=0)
 
