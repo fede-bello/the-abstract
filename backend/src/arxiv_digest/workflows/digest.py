@@ -3,43 +3,39 @@
 `DigestWorkflow` is the single, explicit definition of the pipeline: every stage is
 a ``@step`` method here, in order. Each step calls into its stage's logic function
 under `arxiv_digest.steps`, then returns the event that triggers the next stage.
-Orchestration concerns — order, error handling, and (eventually) branching — live
-here in one readable place; the heavy lifting lives in the step modules.
+Orchestration concerns — order, error handling, and branching — live here in one
+readable place; the heavy lifting lives in the step modules.
 
-Event flow:
-
-    StartEvent          ->  ingest             ->  PapersFetchedEvent
-    PapersFetchedEvent  ->  classify (fan-out) ->  ClassifyPaperEvent (per paper)
-    ClassifyPaperEvent  ->  classify_one       ->  PaperClassifiedEvent
-    PaperClassifiedEvent -> collect_classified ->  ClassifiedEvent (fan-in)
-    ClassifiedEvent     ->  parse              ->  ParsedEvent
-    ParsedEvent         ->  categorize  ->  CategorizedEvent
-    CategorizedEvent    ->  summarize   ->  SummarizedEvent
-    SummarizedEvent     ->  store       ->  StoredEvent
-    StoredEvent         ->  distribute  ->  StopEvent
+Classification and parsing are interleaved per paper to maximise concurrency: each
+paper is classified independently, and a paper marked *useful* starts parsing
+immediately (without waiting for the rest to be classified), while *noise* papers
+skip the expensive parse entirely. The fan-in happens after parsing.
 """
+
+import logging
 
 from workflows import Context, Workflow, step
 from workflows.events import StartEvent, StopEvent
 
+from arxiv_digest.clients.parse import ParseError
 from arxiv_digest.config import settings
 from arxiv_digest.steps.categorization.events import CategorizedEvent
 from arxiv_digest.steps.categorization.step import categorize_papers
-from arxiv_digest.steps.classification.events import (
-    ClassifiedEvent,
-    ClassifyPaperEvent,
-    PaperClassifiedEvent,
-)
+from arxiv_digest.steps.classification.events import ClassifyPaperEvent
 from arxiv_digest.steps.classification.step import classify_paper
 from arxiv_digest.steps.distribution.step import send_digest
 from arxiv_digest.steps.ingestion.events import PapersFetchedEvent
 from arxiv_digest.steps.ingestion.step import fetch_papers
-from arxiv_digest.steps.parsing.events import ParsedEvent
-from arxiv_digest.steps.parsing.step import parse_papers
+from arxiv_digest.steps.parsing.events import PaperResolvedEvent, ParsedEvent, ParsePaperEvent
+from arxiv_digest.steps.parsing.step import parse_paper
 from arxiv_digest.steps.storage.events import StoredEvent
 from arxiv_digest.steps.storage.step import store_papers
 from arxiv_digest.steps.summarization.events import SummarizedEvent
 from arxiv_digest.steps.summarization.step import summarize_papers
+
+logger = logging.getLogger(__name__)
+
+_PAPER_TOTAL = "paper_total"
 
 
 class DigestWorkflow(Workflow):
@@ -61,41 +57,45 @@ class DigestWorkflow(Workflow):
     @step
     async def classify(
         self, ctx: Context, ev: PapersFetchedEvent
-    ) -> ClassifyPaperEvent | ClassifiedEvent | None:
+    ) -> ClassifyPaperEvent | ParsedEvent | None:
         """Fan out one classification per paper, bounded by ``llm_max_concurrency``.
 
-        With no papers, no worker ever runs, so emit an empty ``ClassifiedEvent``
+        With no papers, no worker ever runs, so emit an empty ``ParsedEvent``
         directly rather than waiting on a fan-in that would never complete.
         """
         if not ev.papers:
-            return ClassifiedEvent(papers=[])
-        await ctx.store.set("classify_total", len(ev.papers))
+            return ParsedEvent(papers=[])
+        await ctx.store.set(_PAPER_TOTAL, len(ev.papers))
         for paper in ev.papers:
             ctx.send_event(ClassifyPaperEvent(paper=paper))
         return None
 
     @step(num_workers=settings.llm_max_concurrency)
-    async def classify_one(self, ev: ClassifyPaperEvent) -> PaperClassifiedEvent:
-        """Classify a single paper (runs concurrently across ``num_workers``)."""
+    async def classify_one(self, ev: ClassifyPaperEvent) -> ParsePaperEvent | PaperResolvedEvent:
+        """Classify a single paper; route useful papers to parsing, drop noise."""
         result = await classify_paper(ev.paper)
-        return PaperClassifiedEvent(paper=ev.paper, result=result)
+        if result.label == "useful":
+            return ParsePaperEvent(paper=ev.paper)
+        return PaperResolvedEvent(paper=None)
+
+    @step(num_workers=settings.parse_max_concurrency)
+    async def parse_one(self, ev: ParsePaperEvent) -> PaperResolvedEvent:
+        """Parse a single useful paper; drop it (don't fail the run) if parsing errors."""
+        try:
+            parsed = await parse_paper(ev.paper)
+        except ParseError:
+            logger.warning("parse failed for %s; dropping", ev.paper.arxiv_id, exc_info=True)
+            return PaperResolvedEvent(paper=None)
+        return PaperResolvedEvent(paper=parsed)
 
     @step
-    async def collect_classified(
-        self, ctx: Context, ev: PaperClassifiedEvent
-    ) -> ClassifiedEvent | None:
-        """Fan in every verdict, then keep only the papers marked useful."""
-        total = await ctx.store.get("classify_total")
-        done = ctx.collect_events(ev, [PaperClassifiedEvent] * total)
+    async def collect_parsed(self, ctx: Context, ev: PaperResolvedEvent) -> ParsedEvent | None:
+        """Fan in every per-paper outcome, keeping the useful papers that parsed."""
+        total = await ctx.store.get(_PAPER_TOTAL)
+        done = ctx.collect_events(ev, [PaperResolvedEvent] * total)
         if done is None:
             return None
-        useful = [d.paper for d in done if d.result.label == "useful"]
-        return ClassifiedEvent(papers=useful)
-
-    @step
-    async def parse(self, ev: ClassifiedEvent) -> ParsedEvent:
-        """Parse each useful paper's PDF into text, figures, and tables."""
-        papers = await parse_papers(ev.papers)
+        papers = [e.paper for e in done if e.paper is not None]
         return ParsedEvent(papers=papers)
 
     @step

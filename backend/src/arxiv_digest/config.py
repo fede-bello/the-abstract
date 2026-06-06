@@ -1,43 +1,51 @@
 """Application configuration — the single source of config, via pydantic-settings.
 
-Every tunable and secret lives on `Settings` and is read from the environment / `.env`.
-Nothing else in the codebase should read `os.environ` directly. Import the `settings`
-singleton wherever config is needed.
+Non-secret values are read from `config.toml` at the repo root; secrets come from the
+environment / `.env`. Environment variables override `config.toml`. Nothing else in the
+codebase should read `os.environ` directly — import the `settings` singleton instead.
 """
 
 from pathlib import Path
 from typing import Literal
 
 from pydantic import Field, SecretStr
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import (
+    BaseSettings,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+    TomlConfigSettingsSource,
+)
 
-# The arXiv categories relevant to ML, per the product spec. Overridable via env.
+_CONFIG_TOML = Path(__file__).resolve().parents[3] / "config.toml"
+
+# Fallback if config.toml is absent; config.toml is the canonical, editable copy.
 DEFAULT_ARXIV_CATEGORIES = [
-    "cs.LG",  # Machine Learning
-    "cs.CL",  # Computation and Language
-    "cs.CV",  # Computer Vision and Pattern Recognition
-    "cs.AI",  # Artificial Intelligence
-    "cs.NE",  # Neural and Evolutionary Computing
-    "stat.ML",  # Statistics / Machine Learning
-    "math.OC",  # Optimization and Control
-    "math.ST",  # Statistics Theory
+    "cs.LG",
+    "cs.CL",
+    "cs.CV",
+    "cs.AI",
+    "cs.NE",
+    "stat.ML",
+    "math.OC",
+    "math.ST",
 ]
 
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 LLMBackend = Literal["auto", "claude_code", "litellm"]
+ParseTier = Literal["fast", "cost_effective", "agentic", "agentic_plus"]
 
 
 class Settings(BaseSettings):
     """Runtime configuration.
 
-    Secrets are read from the environment; everything else has a sensible default so
-    the pipeline runs out of the box for anyone who clones the repo. Override any
-    field with an env var of the same name (case-insensitive), e.g. `MAX_RESULTS=5`.
+    Every field has a sensible default so the pipeline runs out of the box; override
+    via `config.toml` or an env var of the same name (e.g. `MAX_RESULTS=5`).
     """
 
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
+        toml_file=str(_CONFIG_TOML),
         extra="ignore",
     )
 
@@ -49,10 +57,9 @@ class Settings(BaseSettings):
     arxiv_categories: list[str] = Field(
         default_factory=lambda: list(DEFAULT_ARXIV_CATEGORIES),
         min_length=1,
-        description="arXiv categories to ingest; must be non-empty.",
     )
-    max_results: int = Field(default=25, gt=0, description="Max papers per ingestion run.")
-    days_back: int = Field(default=7, gt=0, description="Only fetch papers from the last N days.")
+    max_results: int = Field(default=25, gt=0)
+    days_back: int = Field(default=7, gt=0)
 
     # --- arXiv client + retry/backoff tuning (seconds) ---
     arxiv_page_size: int = Field(default=100, gt=0)
@@ -61,20 +68,43 @@ class Settings(BaseSettings):
     arxiv_max_attempts: int = Field(default=6, ge=1)
     arxiv_retry_base_delay_seconds: float = Field(default=3.0, gt=0)
     arxiv_retry_max_delay_seconds: float = Field(default=60.0, gt=0)
+    arxiv_pdf_download_timeout_seconds: float = Field(default=60.0, gt=0)
 
     # --- LLM / classification ---
-    # "auto" prefers the Claude Code SDK (subscription) and falls back to LiteLLM.
     llm_backend: LLMBackend = Field(default="auto")
     classification_model: str = Field(default="claude-haiku-4-5-20251001")
     llm_timeout_seconds: float = Field(default=60.0, gt=0)
     llm_max_concurrency: int = Field(default=4, gt=0)
 
+    # --- Parsing (LlamaParse v2) ---
+    parse_tier: ParseTier = Field(default="cost_effective")
+    parse_max_concurrency: int = Field(default=4, gt=0)
+    parse_timeout_seconds: float = Field(default=1_800.0, gt=0)
+
     # --- Workflow / runtime ---
-    workflow_timeout_seconds: int = Field(default=86_400, gt=0, description="Max seconds per run.")
-    log_level: LogLevel = Field(default="INFO", description="Root logging level.")
+    workflow_timeout_seconds: int = Field(default=86_400, gt=0)
+    log_level: LogLevel = Field(default="INFO")
 
     # --- Storage ---
-    data_dir: Path = Field(default=Path("data"), description="Root directory for downloaded files.")
+    data_dir: Path = Field(default=Path("data"))
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        """Add `config.toml` as a source, below env/.env so those still override it."""
+        return (
+            init_settings,
+            env_settings,
+            dotenv_settings,
+            TomlConfigSettingsSource(settings_cls),
+            file_secret_settings,
+        )
 
     @property
     def pdf_dir(self) -> Path:

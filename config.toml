@@ -1,0 +1,50 @@
+# Non-sensitive configuration for the-abstract.
+#
+# Edit values here to tune the pipeline. Secrets (API keys) do NOT belong here — put
+# those in .env. Any value below can also be overridden by an environment variable of
+# the same name (e.g. MAX_RESULTS=5), which takes precedence over this file.
+
+# --- Ingestion ---
+# arXiv categories to ingest (must be non-empty).
+arxiv_categories = [
+    "cs.LG",    # Machine Learning
+    "cs.CL",    # Computation and Language
+    "cs.CV",    # Computer Vision and Pattern Recognition
+    "cs.AI",    # Artificial Intelligence
+    "cs.NE",    # Neural and Evolutionary Computing
+    "stat.ML",  # Statistics / Machine Learning
+    "math.OC",  # Optimization and Control
+    "math.ST",  # Statistics Theory
+]
+max_results = 25   # Max papers per ingestion run.
+days_back = 7      # Only fetch papers submitted in the last N days.
+
+# --- arXiv client + retry/backoff (seconds) ---
+arxiv_page_size = 100
+arxiv_request_delay_seconds = 5.0
+arxiv_num_retries = 1
+arxiv_max_attempts = 6
+arxiv_retry_base_delay_seconds = 3.0
+arxiv_retry_max_delay_seconds = 60.0
+arxiv_pdf_download_timeout_seconds = 60.0
+
+# --- LLM / classification ---
+# llm_backend: "auto" prefers the Claude Code SDK (subscription), falls back to
+# LiteLLM. Other options: "claude_code", "litellm".
+llm_backend = "auto"
+classification_model = "claude-haiku-4-5-20251001"
+llm_timeout_seconds = 60.0
+llm_max_concurrency = 4
+
+# --- Parsing (LlamaParse v2) ---
+# parse_tier, cheapest -> most accurate: "fast", "cost_effective", "agentic", "agentic_plus".
+parse_tier = "cost_effective"
+parse_max_concurrency = 4
+parse_timeout_seconds = 1800.0
+
+# --- Workflow / runtime ---
+workflow_timeout_seconds = 86400   # Max seconds per run.
+log_level = "INFO"                 # DEBUG | INFO | WARNING | ERROR | CRITICAL
+
+# --- Storage ---
+data_dir = "data"   # Root directory for downloaded files.

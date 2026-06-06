@@ -31,7 +31,7 @@ backend/src/arxiv_digest/
 ├── steps/<stage>/   # step.py = pure async logic fn; events.py = the stage's event class
 ├── clients/     # llm.py, db.py, arxiv.py, parse.py — ALL external I/O lives here
 ├── api/         # FastAPI — thin HTTP layer over the workflows
-└── config.py    # env-driven config
+└── config.py    # Settings: loads config.toml (non-secret) + env/.env (secrets)
 frontend/        # Vite + React SPA — talks to the API only
 ```
 
@@ -45,7 +45,7 @@ frontend/        # Vite + React SPA — talks to the API only
 
 - **Python**: ruff (lint+format) + mypy, run via `uv`. Full type hints, no bare `Any`. Events, API bodies, and config are Pydantic models. DB row types are generated, not hand-written.
 - **Commits**: conventional one-liners, no scope parens, **no `Co-Authored-By` trailer**, never `--no-verify`, never amend. (Handled by `/ship`.)
-- **OSS hygiene**: this repo is public. No secrets in code (only `config.py` reads env); document every new env var in `.env.example`; no real personal/mailing data — sample data only. Config-drive anything a forker would change (categories, schedule, model names).
+- **OSS hygiene**: this repo is public. No secrets in code (only `config.py` reads them, from env/`.env`); put non-secret config in `config.toml` and add only secrets to `.env.example`; no real personal/mailing data — sample data only. Config-drive anything a forker would change (categories, schedule, model names).
 
 ## Verify before shipping
 
