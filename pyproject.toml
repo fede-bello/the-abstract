@@ -123,5 +123,7 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 pythonpath = ["backend/src", "backend/tests"]
 testpaths = ["backend/tests"]
+# importlib mode lets the mirrored layout reuse basenames (steps/*/test_step.py).
+addopts = "--import-mode=importlib"
 asyncio_mode = "auto"
 markers = ["integration: tests that call a real LLM backend"]
