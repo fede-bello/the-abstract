@@ -143,7 +143,7 @@ What this does *not* mean: don't merge separate concepts to shrink line count; d
 ## This repo's conventions (read before writing)
 
 - `pyproject.toml` sets `asyncio_mode = "auto"`, so `async def test_…` works without `@pytest.mark.asyncio`. Don't add the marker.
-- `pythonpath = ["backend/src"]` is set — import production code as `from arxiv_digest... import ...`. No path manipulation in tests.
+- `pythonpath = ["backend/src", "backend/tests"]` is set — import production code as `from arxiv_digest... import ...`, and shared test factories as `from _builders import make_paper`. No path manipulation in tests.
 - The `integration` marker is registered for tests that call a real LLM backend; gate them on `backend_available()` and skip cleanly. Keep `uv run pytest -m "not integration"` green with zero credentials.
-- mypy `exclude`s `backend/tests/`, and ruff `per-file-ignores` for `backend/tests/**` drops `S101` (assert), `D` (docstrings), `ANN` (annotations), `PLR2004` (magic values), and `INP001` (no `__init__`). So tests need no docstrings or type hints and may use literal expected values freely — but ruff `select = ["ALL"]` still governs everything else; tests are not a style free-for-all.
+- mypy `exclude`s `backend/tests/`, and ruff `per-file-ignores` for `backend/tests/**` drops `S101` (assert), `D` (docstrings), `ANN` (annotations), `PLR2004` (magic values), `INP001` (no `__init__`), and `ARG` (unused args in fakes that mirror a real signature). So tests need no docstrings or type hints and may use literal expected values freely — but ruff `select = ["ALL"]` still governs everything else; tests are not a style free-for-all.
 - Read a neighbouring test (`backend/tests/test_classification.py`) before writing a new one — match the fixture/skip/assert patterns already in place.
