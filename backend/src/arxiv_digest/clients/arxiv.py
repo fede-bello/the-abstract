@@ -34,6 +34,14 @@ class Author(BaseModel):
     affiliation: str | None = None
 
 
+class Summary(BaseModel):
+    """Generated summaries for one paper — the LLM output schema and the stored value."""
+
+    short: str  # 3-4 bullet points covering key contributions/findings
+    long: str  # ~2 paragraphs covering methodology, results, implications
+    conclusions: str  # brief note on significance/impact
+
+
 class Paper(BaseModel):
     """An arXiv paper: lightweight metadata plus the path to its downloaded PDF.
 
@@ -57,6 +65,7 @@ class Paper(BaseModel):
     pdf_path: Path | None = None
     full_text: str | None = None
     topics: list[str] = Field(default_factory=list)
+    summary: Summary | None = None
 
 
 def _build_query(categories: list[str], days_back: int) -> str:

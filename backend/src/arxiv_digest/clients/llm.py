@@ -68,12 +68,16 @@ def backend_available() -> bool:
     return _claude_code_available() or has_key
 
 
-async def _complete_claude_code(system: str, user: str, schema: type[T]) -> T:
-    """Single-turn completion via the Claude Code SDK (subscription auth, no API key)."""
+async def _complete_claude_code(system: str, user: str, schema: type[T], model: str) -> T:
+    """Single-turn completion via the Claude Code SDK (subscription auth, no API key).
+
+    The SDK exposes no max-output-tokens knob, so a caller's ``max_tokens`` only bounds
+    the LiteLLM path; here output is left to the model's own limit.
+    """
     from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, TextBlock, query
 
     options = ClaudeAgentOptions(
-        model=settings.classification_model,
+        model=model,
         system_prompt=system,
         allowed_tools=[],  # plain LLM call — no tools
         max_turns=1,
@@ -92,36 +96,51 @@ async def _complete_claude_code(system: str, user: str, schema: type[T]) -> T:
     return _parse_json(text, schema)
 
 
-async def _complete_litellm(system: str, user: str, schema: type[T]) -> T:
+async def _complete_litellm(
+    system: str, user: str, schema: type[T], model: str, max_tokens: int
+) -> T:
     """Single-turn completion via LiteLLM (API key; provider-swappable by model string)."""
     from litellm import acompletion
 
     response = await acompletion(
-        model=f"anthropic/{settings.classification_model}",
+        model=f"anthropic/{model}",
         messages=[
             {"role": "system", "content": system},
             {"role": "user", "content": user},
         ],
         response_format=schema,
         api_key=settings.anthropic_api_key.get_secret_value() or None,
-        max_tokens=_MAX_OUTPUT_TOKENS,
+        max_tokens=max_tokens,
         timeout=settings.llm_timeout_seconds,
         num_retries=2,
     )
     return _parse_json(response.choices[0].message.content or "", schema)
 
 
-async def complete_structured(system: str, user: str, schema: type[T]) -> T:
-    """Return a structured completion, honoring ``settings.llm_backend`` with auto-fallback."""
+async def complete_structured(
+    system: str,
+    user: str,
+    schema: type[T],
+    *,
+    model: str | None = None,
+    max_tokens: int | None = None,
+) -> T:
+    """Return a structured completion, honoring ``settings.llm_backend`` with auto-fallback.
+
+    ``model`` and ``max_tokens`` default to the classification model and limit; pass them
+    to override per call (e.g. a stronger model with more headroom for summarization).
+    """
+    model = model or settings.classification_model
+    max_tokens = max_tokens or _MAX_OUTPUT_TOKENS
     if settings.llm_backend == "claude_code":
-        return await _complete_claude_code(system, user, schema)
+        return await _complete_claude_code(system, user, schema, model)
     if settings.llm_backend == "litellm":
-        return await _complete_litellm(system, user, schema)
+        return await _complete_litellm(system, user, schema, model, max_tokens)
 
     # auto: prefer the Claude Code SDK, fall back to LiteLLM on any failure.
     if _claude_code_available():
         try:
-            return await _complete_claude_code(system, user, schema)
+            return await _complete_claude_code(system, user, schema, model)
         except Exception:  # noqa: BLE001 — any SDK/auth failure should fall back to LiteLLM
             logger.warning("Claude Code SDK failed; falling back to LiteLLM", exc_info=True)
-    return await _complete_litellm(system, user, schema)
+    return await _complete_litellm(system, user, schema, model, max_tokens)

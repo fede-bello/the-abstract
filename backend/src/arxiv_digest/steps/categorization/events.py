@@ -25,6 +25,6 @@ class PaperResolvedEvent(Event):
 
 
 class CategorizedEvent(Event):
-    """Papers with parsed content and topic tags, ready for summarization."""
+    """Papers with parsed content, summaries, and topic tags — the post-join aggregate."""
 
     papers: list[Paper]
