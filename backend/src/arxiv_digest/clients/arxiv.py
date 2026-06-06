@@ -66,6 +66,7 @@ class Paper(BaseModel):
     full_text: str | None = None
     topics: list[str] = Field(default_factory=list)
     summary: Summary | None = None
+    classification_rationale: str | None = None
 
 
 def _build_query(categories: list[str], days_back: int) -> str:

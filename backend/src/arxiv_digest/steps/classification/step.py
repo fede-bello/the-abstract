@@ -53,7 +53,7 @@ def _format_metadata(paper: Paper) -> str:
 async def classify_paper(paper: Paper) -> ClassificationResult:
     """Classify a single paper as useful vs noise from its metadata.
 
-    The ``rationale`` is generated now but not yet threaded forward; it will be
-    persisted alongside the classification result in the storage step (objective.md §6.1).
+    For useful papers the ``rationale`` is carried onto the paper in the workflow and
+    persisted by the storage step (objective.md §6.1).
     """
     return await complete_structured(_SYSTEM_PROMPT, _format_metadata(paper), ClassificationResult)

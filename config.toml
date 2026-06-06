@@ -48,5 +48,13 @@ parse_timeout_seconds = 1800.0
 workflow_timeout_seconds = 86400   # Max seconds per run.
 log_level = "INFO"                 # DEBUG | INFO | WARNING | ERROR | CRITICAL
 
+# --- Embeddings (local HuggingFace model for RAG) ---
+# embedding_dim MUST match the model and the vector(N) column in the DB migration.
+embedding_model = "BAAI/bge-small-en-v1.5"
+embedding_dim = 384
+embedding_device = "cpu"   # "cpu", "cuda", or "mps" (Apple Silicon)
+chunk_size = 512           # tokens per chunk
+chunk_overlap = 64         # token overlap between chunks
+
 # --- Storage ---
 data_dir = "data"   # Root directory for downloaded files.

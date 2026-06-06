@@ -52,6 +52,7 @@ class Settings(BaseSettings):
     # --- Secrets (read from the environment; SecretStr keeps them out of logs/reprs) ---
     anthropic_api_key: SecretStr = SecretStr("")
     llama_cloud_api_key: SecretStr = SecretStr("")
+    supabase_db_url: SecretStr = SecretStr("")
 
     # --- Ingestion ---
     arxiv_categories: list[str] = Field(
@@ -86,6 +87,13 @@ class Settings(BaseSettings):
     # --- Workflow / runtime ---
     workflow_timeout_seconds: int = Field(default=86_400, gt=0)
     log_level: LogLevel = Field(default="INFO")
+
+    # --- Embeddings (local HuggingFace model; dim must match the pgvector column) ---
+    embedding_model: str = Field(default="BAAI/bge-small-en-v1.5")
+    embedding_dim: int = Field(default=384, gt=0)
+    embedding_device: str = Field(default="cpu")
+    chunk_size: int = Field(default=512, gt=0)
+    chunk_overlap: int = Field(default=64, ge=0)
 
     # --- Storage ---
     data_dir: Path = Field(default=Path("data"))
