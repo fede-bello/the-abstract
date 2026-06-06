@@ -15,7 +15,7 @@ from pathlib import Path
 
 import arxiv
 import httpx
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from arxiv_digest.config import settings
 
@@ -56,6 +56,7 @@ class Paper(BaseModel):
     pdf_url: str
     pdf_path: Path | None = None
     full_text: str | None = None
+    topics: list[str] = Field(default_factory=list)
 
 
 def _build_query(categories: list[str], days_back: int) -> str:
