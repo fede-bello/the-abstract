@@ -14,6 +14,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import arxiv
+import httpx
 from pydantic import BaseModel
 
 from arxiv_digest.config import settings
@@ -54,6 +55,8 @@ class Paper(BaseModel):
     updated: datetime
     pdf_url: str
     pdf_path: Path | None = None
+    # Full parsed text (markdown), populated by the parsing step for useful papers.
+    full_text: str | None = None
 
 
 def _build_query(categories: list[str], days_back: int) -> str:
@@ -69,17 +72,40 @@ def _build_query(categories: list[str], days_back: int) -> str:
     return f"({category_clause}) AND {window}"
 
 
+def _download_pdf(url: str, dest: Path) -> None:
+    """Stream a PDF to `dest`. Runs in a worker thread, so a sync httpx call is fine.
+
+    The `arxiv` library dropped `Result.download_pdf` in 4.x, so we fetch the
+    published `pdf_url` ourselves; this also keeps the download in the client layer.
+    """
+    timeout = settings.arxiv_pdf_download_timeout_seconds
+    with httpx.stream("GET", url, follow_redirects=True, timeout=timeout) as response:
+        response.raise_for_status()
+        with dest.open("wb") as handle:
+            for chunk in response.iter_bytes():
+                handle.write(chunk)
+
+
+def _author_affiliation(author: arxiv.Result.Author) -> str | None:
+    """Normalize an author's affiliation across `arxiv` versions (2.x str, 4.x list)."""
+    affiliation = getattr(author, "affiliation", None)
+    if isinstance(affiliation, list):
+        return "; ".join(affiliation) if affiliation else None
+    return affiliation or None
+
+
 def _to_paper(result: arxiv.Result, pdf_dir: Path) -> Paper:
     """Download a result's PDF and map the arXiv result onto our `Paper` model."""
     arxiv_id = result.get_short_id()
     filename = f"{arxiv_id.replace('/', '_')}.pdf"
-    result.download_pdf(dirpath=str(pdf_dir), filename=filename)
+    pdf_path = pdf_dir / filename
+    _download_pdf(result.pdf_url, pdf_path)
     return Paper(
         arxiv_id=arxiv_id,
         entry_id=result.entry_id,
         title=result.title.strip(),
         abstract=result.summary.strip(),
-        authors=[Author(name=a.name, affiliation=a.affiliation) for a in result.authors],
+        authors=[Author(name=a.name, affiliation=_author_affiliation(a)) for a in result.authors],
         primary_category=result.primary_category,
         categories=list(result.categories),
         comment=result.comment,
@@ -88,7 +114,7 @@ def _to_paper(result: arxiv.Result, pdf_dir: Path) -> Paper:
         published=result.published,
         updated=result.updated,
         pdf_url=result.pdf_url,
-        pdf_path=pdf_dir / filename,
+        pdf_path=pdf_path,
     )
 
 

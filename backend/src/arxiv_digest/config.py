@@ -25,6 +25,9 @@ DEFAULT_ARXIV_CATEGORIES = [
 
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 LLMBackend = Literal["auto", "claude_code", "litellm"]
+# LlamaParse v2 tiers, cheapest → most accurate. "cost_effective" runs an LLM per
+# page (good multi-column/table handling) without the pricier agentic tiers.
+ParseTier = Literal["fast", "cost_effective", "agentic", "agentic_plus"]
 
 
 class Settings(BaseSettings):
@@ -61,6 +64,7 @@ class Settings(BaseSettings):
     arxiv_max_attempts: int = Field(default=6, ge=1)
     arxiv_retry_base_delay_seconds: float = Field(default=3.0, gt=0)
     arxiv_retry_max_delay_seconds: float = Field(default=60.0, gt=0)
+    arxiv_pdf_download_timeout_seconds: float = Field(default=60.0, gt=0)
 
     # --- LLM / classification ---
     # "auto" prefers the Claude Code SDK (subscription) and falls back to LiteLLM.
@@ -68,6 +72,11 @@ class Settings(BaseSettings):
     classification_model: str = Field(default="claude-haiku-4-5-20251001")
     llm_timeout_seconds: float = Field(default=60.0, gt=0)
     llm_max_concurrency: int = Field(default=4, gt=0)
+
+    # --- Parsing (LlamaParse v2) ---
+    parse_tier: ParseTier = Field(default="cost_effective")
+    parse_max_concurrency: int = Field(default=4, gt=0)
+    parse_timeout_seconds: float = Field(default=1_800.0, gt=0)
 
     # --- Workflow / runtime ---
     workflow_timeout_seconds: int = Field(default=86_400, gt=0, description="Max seconds per run.")
