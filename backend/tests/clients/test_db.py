@@ -7,10 +7,11 @@ import asyncpg
 import pytest
 from _builders import make_paper
 
-from arxiv_digest.clients.db import store_papers
+from arxiv_digest.clients.db import get_active_subscribers, store_papers
 from arxiv_digest.config import settings
 
 _TEST_ARXIV_ID = "test.0000001"
+_TEST_EMAIL = "test-subscriber@example.com"
 
 
 @pytest.mark.integration
@@ -39,4 +40,30 @@ async def test_store_papers_writes_paper_and_chunks():
     finally:
         conn = await asyncpg.connect(dsn=dsn)
         await conn.execute("delete from papers where arxiv_id = $1", _TEST_ARXIV_ID)
+        await conn.close()
+
+
+@pytest.mark.integration
+async def test_get_active_subscribers_returns_active_rows():
+    dsn = settings.supabase_db_url.get_secret_value()
+    if not dsn:
+        pytest.skip("SUPABASE_DB_URL not set")
+
+    conn = await asyncpg.connect(dsn=dsn)
+    try:
+        await conn.execute("delete from subscribers where email = $1", _TEST_EMAIL)
+        await conn.execute(
+            "insert into subscribers (email, interests) values ($1, $2)", _TEST_EMAIL, ["LLMs"]
+        )
+    finally:
+        await conn.close()
+
+    try:
+        subscribers = await get_active_subscribers()
+        match = next((s for s in subscribers if s.email == _TEST_EMAIL), None)
+        assert match is not None
+        assert match.interests == ["LLMs"]
+    finally:
+        conn = await asyncpg.connect(dsn=dsn)
+        await conn.execute("delete from subscribers where email = $1", _TEST_EMAIL)
         await conn.close()

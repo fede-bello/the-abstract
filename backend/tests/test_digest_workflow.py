@@ -41,6 +41,10 @@ async def _fake_store(papers: list[Paper]) -> list[Paper]:
     return papers
 
 
+async def _fake_send_digest(papers: list[Paper]) -> None:
+    return None
+
+
 def _patch(monkeypatch, papers: list[Paper]) -> None:
     async def fake_fetch(max_results: int, days_back: int) -> list[Paper]:
         return papers
@@ -51,6 +55,7 @@ def _patch(monkeypatch, papers: list[Paper]) -> None:
     monkeypatch.setattr(digest, "categorize_paper", _fake_categorize)
     monkeypatch.setattr(digest, "summarize_paper", _fake_summarize)
     monkeypatch.setattr(digest, "store_papers", _fake_store)
+    monkeypatch.setattr(digest, "send_digest", _fake_send_digest)
 
 
 async def test_keeps_useful_parsed_drops_noise_and_failures(monkeypatch):

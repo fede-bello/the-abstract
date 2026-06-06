@@ -11,10 +11,11 @@ from arxiv_digest.config import settings
 
 _SYSTEM_PROMPT = (
     "You summarize a machine-learning paper for a weekly research digest. Write three "
-    "parts: `short` — 3 to 4 bullet points covering the key contributions and findings, "
-    "for quick scanning; `long` — about two paragraphs covering methodology, results, and "
-    "implications; `conclusions` — a brief note on the paper's significance and potential "
-    "impact. Be specific and faithful to the paper; do not invent results."
+    "parts: `short` — 2 to 3 bullet points for quick scanning, each ONE short sentence of at "
+    "most 20 words, plain and punchy, no parenthetical asides, no equations, at most one "
+    "number per bullet (one bullet per line, prefixed with '- '); `long` — about two "
+    "paragraphs covering methodology, results, and implications; `conclusions` — a brief note "
+    "on the paper's significance and impact. Be faithful to the paper; never invent results."
 )
 
 

@@ -56,5 +56,14 @@ embedding_device = "cpu"   # "cpu", "cuda", or "mps" (Apple Silicon)
 chunk_size = 512           # tokens per chunk
 chunk_overlap = 64         # token overlap between chunks
 
+# --- Email digest (SMTP) ---
+# Defaults target Gmail (use a Gmail App Password as SMTP_PASSWORD). Point host/port at any
+# provider (Resend/Mailgun/SES SMTP, ...) to switch — no code change. Credentials live in .env.
+smtp_host = "smtp.gmail.com"
+smtp_port = 587
+smtp_starttls = true
+email_from = ""   # "arXiv ML Digest <you@gmail.com>"; blank falls back to SMTP_USERNAME
+weekly_insight_max_output_tokens = 512   # Tokens for the one-paragraph weekly insight.
+
 # --- Storage ---
 data_dir = "data"   # Root directory for downloaded files.
