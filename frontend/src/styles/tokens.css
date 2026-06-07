@@ -1,0 +1,108 @@
+/* Design tokens — "Modern Scientific": high-contrast warm-white/ink, one electric accent,
+   strict grid, oversized fluid grotesque type. Light is the default; [data-theme="dark"]
+   overrides the color set only. "Invert" tokens are for surfaces that flip against the page
+   (footer, active nav, primary buttons, user chat bubble) so they stay consistent in both themes. */
+
+:root {
+  /* --- Color (light) --- */
+  --ink: #0a0a0a;
+  --ink-soft: #2a2a26;
+  --paper: #faf9f5; /* warm off-white, never pure #fff */
+  --paper-sunk: #f0efe8; /* recessed panels */
+  --paper-raised: #ffffff; /* cards lifted above the page */
+  --muted: #54534e; /* secondary text — dark enough to read as body copy */
+  --muted-soft: #767670; /* labels / metadata only, never long-form text */
+  --line: #0a0a0a; /* hairline rules are ink, not grey — Swiss */
+  --line-faint: #d8d7cf;
+  --accent: #0034ff; /* electric blue — the only chromatic color */
+  --accent-soft: #e6ebff; /* tinted accent wash */
+  --accent-ink: #ffffff; /* text on accent */
+
+  --invert-bg: #0a0a0a; /* inverted surface background */
+  --invert-fg: #faf9f5; /* text on inverted surfaces */
+  --invert-muted: #9a9a92;
+
+  --shadow: 0 1px 0 rgba(10, 10, 10, 0.04);
+  --overlay: rgba(10, 10, 10, 0.45);
+
+  --scrim: color-mix(in srgb, var(--paper) 72%, transparent);
+
+  /* --- Typography --- */
+  --font-display: 'Archivo Variable', 'Archivo', sans-serif;
+  --font-body: 'Hanken Grotesk Variable', 'Hanken Grotesk', sans-serif;
+  --font-mono: 'Space Mono', ui-monospace, monospace;
+
+  /* Fluid type scale */
+  --fs-mega: clamp(3rem, 9vw, 8rem);
+  --fs-display: clamp(2.25rem, 6vw, 5rem);
+  --fs-h1: clamp(1.9rem, 4vw, 3rem);
+  --fs-h2: clamp(1.4rem, 2.4vw, 2rem);
+  --fs-h3: 1.25rem;
+  --fs-body: 1.0625rem;
+  --fs-small: 0.9375rem;
+  --fs-meta: 0.75rem; /* mono metadata: ids, dates, counts */
+
+  --lh-tight: 0.96;
+  --lh-snug: 1.18;
+  --lh-body: 1.62;
+
+  --tracking-tight: -0.03em;
+  --tracking-mono: 0.04em;
+  --tracking-label: 0.14em; /* uppercase mono labels */
+
+  /* --- Space (4px base) --- */
+  --s1: 0.25rem;
+  --s2: 0.5rem;
+  --s3: 0.75rem;
+  --s4: 1rem;
+  --s5: 1.5rem;
+  --s6: 2rem;
+  --s7: 3rem;
+  --s8: 4rem;
+  --s9: 6rem;
+
+  /* --- Layout --- */
+  --page-max: 1320px;
+  --gutter: clamp(1.25rem, 4vw, 4rem);
+  --col-gap: clamp(1rem, 2vw, 2rem);
+
+  /* --- Misc --- */
+  --radius: 0; /* sharp Swiss edges */
+  --border: 1.5px solid var(--line);
+  --border-faint: 1px solid var(--line-faint);
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --dur: 180ms;
+
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  --ink: #f3f2ec;
+  --ink-soft: #cecdc5;
+  --paper: #0e0e0c; /* warm near-black */
+  --paper-sunk: #1a1a17;
+  --paper-raised: #181815;
+  --muted: #a3a299;
+  --muted-soft: #6f6f67;
+  --line: #f3f2ec;
+  --line-faint: #2c2c27;
+  --accent: #5b7bff; /* brightened so it reads on dark */
+  --accent-soft: #1a2142;
+  --accent-ink: #0b0e1f;
+
+  --invert-bg: #22221d; /* a raised dark panel rather than a flip to light */
+  --invert-fg: #f3f2ec;
+  --invert-muted: #8a8a81;
+
+  --shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
+  --overlay: rgba(0, 0, 0, 0.6);
+  --scrim: color-mix(in srgb, var(--paper) 70%, transparent);
+
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur: 0ms;
+  }
+}

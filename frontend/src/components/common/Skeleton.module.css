@@ -1,0 +1,54 @@
+.list {
+  border-top: var(--border);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 3ch 1fr;
+  gap: var(--s4);
+  padding: var(--s5) 0;
+  border-bottom: var(--border-faint);
+}
+
+.num,
+.line {
+  background: var(--paper-sunk);
+  position: relative;
+  overflow: hidden;
+}
+
+.num {
+  height: 1rem;
+  width: 100%;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.line {
+  height: 1.4rem;
+  width: 70%;
+}
+.short {
+  height: 0.9rem;
+  width: 45%;
+}
+
+.num::after,
+.line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.05), transparent);
+  animation: shimmer 1.3s var(--ease) infinite;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}

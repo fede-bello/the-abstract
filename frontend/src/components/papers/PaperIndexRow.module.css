@@ -1,0 +1,109 @@
+.row {
+  display: grid;
+  grid-template-columns: 3.5ch 1fr minmax(7rem, auto);
+  gap: clamp(0.75rem, 2vw, 2.5rem);
+  padding: var(--s5) 0;
+  border-bottom: var(--border-faint);
+  /* Long feeds: skip layout/paint for offscreen rows. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 160px;
+  position: relative;
+  animation: rise 380ms var(--ease) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row {
+    animation: none;
+  }
+}
+
+/* Accent edge that grows on hover — the one chromatic moment per row. */
+.row::before {
+  content: '';
+  position: absolute;
+  left: calc(-1 * var(--gutter));
+  top: -1px;
+  bottom: -1px;
+  width: 0;
+  background: var(--accent);
+  transition: width var(--dur) var(--ease);
+}
+.row:hover::before {
+  width: 6px;
+}
+
+.index {
+  color: var(--muted-soft);
+  padding-top: 0.35rem;
+  transition: color var(--dur) var(--ease);
+}
+.row:hover .index {
+  color: var(--accent);
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  min-width: 0;
+}
+
+.title {
+  font-size: var(--fs-h3);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.titleLink {
+  background-image: linear-gradient(var(--accent), var(--accent));
+  background-size: 0% 2px;
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  transition: background-size var(--dur) var(--ease);
+}
+.titleLink:hover {
+  background-size: 100% 2px;
+}
+
+.bullets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+  font-size: var(--fs-small);
+  color: var(--ink-soft);
+  max-width: 64ch;
+}
+.bullets li {
+  padding-left: 1.1rem;
+  position: relative;
+}
+.bullets li::before {
+  content: '—';
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--s2);
+  text-align: right;
+  padding-top: 0.4rem;
+}
+
+@media (max-width: 720px) {
+  .row {
+    grid-template-columns: 3ch 1fr;
+  }
+  .meta {
+    grid-column: 2;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: left;
+    gap: var(--s3);
+  }
+}

@@ -1,0 +1,38 @@
+.wrap {
+  border-top: var(--border-faint);
+}
+
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  width: 100%;
+  padding: var(--s4) 0;
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--muted);
+  transition: color var(--dur) var(--ease);
+}
+.trigger:hover {
+  color: var(--ink);
+}
+
+.sign {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border: var(--border);
+  color: var(--accent);
+  font-size: 0.9rem;
+}
+
+.body {
+  padding-bottom: var(--s5);
+  color: var(--muted);
+  max-width: 70ch;
+  animation: rise var(--dur) var(--ease);
+}
