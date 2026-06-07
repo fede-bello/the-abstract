@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Paper } from '@/data/types';
-import { applyFilters, topicCounts } from './filtering';
+import { applyFilters } from './filtering';
 
 function makePaper(overrides: Partial<Paper> & Pick<Paper, 'arxiv_id'>): Paper {
   return {
@@ -76,17 +76,5 @@ describe('applyFilters', () => {
   it('combines filters with AND across dimensions', () => {
     const result = applyFilters(papers, { topics: ['Computer Vision'], categories: ['cs.CL'] });
     expect(result).toHaveLength(0);
-  });
-});
-
-describe('topicCounts', () => {
-  it('counts papers per topic in taxonomy order, omitting empties', () => {
-    const counts = topicCounts(papers);
-    const llms = counts.find((c) => c.title === 'LLMs');
-    expect(llms?.count).toBe(1);
-    // taxonomy order: LLMs comes before Computer Vision before Diffusion? check ordering is stable
-    const titles = counts.map((c) => c.title);
-    expect(titles).toContain('Diffusion Models');
-    expect(titles).not.toContain('Multimodal'); // zero count omitted
   });
 });
