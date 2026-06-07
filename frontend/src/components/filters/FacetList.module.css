@@ -1,0 +1,48 @@
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.facet {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  width: 100%;
+  padding: var(--s2) 0;
+  text-align: left;
+  color: var(--ink-soft);
+  transition: color var(--dur) var(--ease);
+}
+.facet:hover {
+  color: var(--ink);
+}
+
+.box {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  border: 1.5px solid var(--line);
+  background: transparent;
+  transition: background var(--dur) var(--ease);
+}
+.on .box {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.name {
+  flex: 1;
+  font-size: var(--fs-small);
+}
+.on .name {
+  font-weight: 600;
+}
+
+.count {
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  color: var(--muted-soft);
+}
+.on .count {
+  color: var(--accent);
+}

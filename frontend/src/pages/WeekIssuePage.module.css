@@ -1,0 +1,17 @@
+.page {
+  padding-top: var(--s6);
+  padding-bottom: var(--s6);
+}
+
+.back {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--muted);
+  transition: color var(--dur) var(--ease);
+}
+.back:hover {
+  color: var(--accent);
+}

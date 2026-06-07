@@ -1,0 +1,44 @@
+.form {
+  display: flex;
+  gap: 0;
+  border: var(--border);
+  background: var(--paper);
+}
+.form:focus-within {
+  outline: 2.5px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.input {
+  flex: 1;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  padding: var(--s4);
+  font-size: var(--fs-small);
+  line-height: 1.5;
+  max-height: 8rem;
+}
+.input::placeholder {
+  color: var(--muted-soft);
+}
+
+.send {
+  flex: none;
+  padding: 0 var(--s5);
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  background: var(--invert-bg);
+  color: var(--invert-fg);
+  transition: background var(--dur) var(--ease);
+}
+.send:hover:not(:disabled) {
+  background: var(--accent);
+}
+.send:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

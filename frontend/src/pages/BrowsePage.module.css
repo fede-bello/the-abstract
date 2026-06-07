@@ -1,0 +1,60 @@
+.page {
+  padding: var(--s7) 0 var(--s6);
+}
+
+.head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--s5);
+  padding-bottom: var(--s5);
+  border-bottom: var(--border);
+  margin-bottom: var(--s6);
+}
+
+.title {
+  font-size: var(--fs-h1);
+  font-weight: 800;
+  letter-spacing: var(--tracking-tight);
+}
+
+.search {
+  max-width: 32rem;
+  width: 100%;
+}
+
+.resultCount {
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(180px, 220px) 1fr;
+  gap: clamp(1.5rem, 4vw, 4rem);
+  align-items: start;
+}
+
+/* Subtle dim while the deferred keyword filter catches up. */
+.stale {
+  opacity: 0.6;
+  transition: opacity var(--dur) var(--ease);
+}
+
+@media (max-width: 880px) {
+  .head {
+    grid-template-columns: 1fr;
+    gap: var(--s4);
+  }
+  .resultCount {
+    justify-self: start;
+  }
+  .layout {
+    grid-template-columns: 1fr;
+    gap: var(--s6);
+  }
+}

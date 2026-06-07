@@ -1,0 +1,23 @@
+.page {
+  padding: var(--s7) 0 var(--s6);
+}
+
+.head {
+  margin-bottom: var(--s7);
+}
+
+.title {
+  font-size: var(--fs-display);
+  font-weight: 800;
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tight);
+  margin: var(--s3) 0 var(--s4);
+}
+
+.sub {
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  letter-spacing: var(--tracking-mono);
+  text-transform: uppercase;
+  color: var(--muted);
+}

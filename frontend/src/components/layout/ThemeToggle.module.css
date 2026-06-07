@@ -1,0 +1,50 @@
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: 0 var(--s3);
+  border-left: var(--border-faint);
+  color: var(--muted);
+  transition: color var(--dur) var(--ease);
+}
+.toggle:hover {
+  color: var(--ink);
+}
+
+.track {
+  position: relative;
+  width: 30px;
+  height: 15px;
+  border: 1.5px solid var(--line);
+  background: var(--accent);
+  transition: background var(--dur) var(--ease);
+}
+.track.light {
+  background: transparent;
+}
+
+.thumb {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 10px;
+  height: 10px;
+  background: var(--invert-fg);
+  transition: transform var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.light .thumb {
+  background: var(--ink);
+  transform: translateX(15px);
+}
+
+.glyph {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+@media (max-width: 640px) {
+  .toggle {
+    border-left: none;
+    padding: var(--s3) 0;
+  }
+}

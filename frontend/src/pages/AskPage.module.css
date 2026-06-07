@@ -1,0 +1,19 @@
+.page {
+  padding: var(--s6) 0;
+}
+
+.head {
+  max-width: 760px;
+  margin: 0 auto var(--s5);
+}
+
+.beta {
+  color: var(--accent);
+}
+
+.title {
+  font-size: var(--fs-h1);
+  font-weight: 800;
+  letter-spacing: var(--tracking-tight);
+  margin-top: var(--s2);
+}

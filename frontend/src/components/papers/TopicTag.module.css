@@ -1,0 +1,38 @@
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: 3px var(--s2);
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  background: transparent;
+  white-space: nowrap;
+  transition:
+    background var(--dur) var(--ease),
+    color var(--dur) var(--ease);
+}
+
+a.tag:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+a.active:hover {
+  background: var(--accent);
+  color: var(--accent-ink);
+  filter: brightness(1.1);
+}
+
+.count {
+  font-size: 0.9em;
+  opacity: 0.65;
+}

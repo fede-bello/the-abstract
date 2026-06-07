@@ -1,0 +1,20 @@
+.line {
+  font-size: var(--fs-small);
+  color: var(--muted);
+}
+
+.names {
+  color: var(--ink-soft);
+}
+
+.sep {
+  margin: 0 var(--s2);
+  color: var(--accent);
+}
+
+.affiliation {
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  letter-spacing: var(--tracking-mono);
+  text-transform: uppercase;
+}
