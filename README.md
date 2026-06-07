@@ -68,11 +68,17 @@ cd the-abstract
 # backend
 cp .env.example .env        # add your API keys (arXiv, LLM, LlamaCloud, DB)
 uv sync
-uv run arxiv-digest ingest  # run the weekly pipeline once
+uv run arxiv-digest ingest  # run the weekly pipeline once to populate the DB
+uv run arxiv-digest serve   # start the read-only API (default http://127.0.0.1:8000)
+#   equivalently: uv run uvicorn arxiv_digest.api.app:app --reload
 
-# frontend
-cd frontend && npm install && npm run dev
+# frontend (talks to the API above)
+cd frontend
+cp .env.example .env        # VITE_API_BASE_URL defaults to http://localhost:8000
+npm install && npm run dev
 ```
+
+The frontend shows empty states until `arxiv-digest ingest` has populated the database; after a run, papers appear across This week / Browse / Archive / paper detail.
 
 Configuration — arXiv categories, the topic-tag list, schedule day, model names — lives in `config.py` / environment variables so you can adapt it without touching code.
 
