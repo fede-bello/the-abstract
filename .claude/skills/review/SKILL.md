@@ -29,17 +29,17 @@ backend/src/arxiv_digest/
 ├── steps/            # one folder per pipeline stage
 │   └── <stage>/      #   step.py (pure async logic fn) + events.py (the stage's event class)
 ├── clients/          # llm.py, db.py, arxiv.py, parse.py — external I/O, called BY logic fns
-├── api/              # FastAPI app — thin HTTP layer over the workflows
+├── api/              # FastAPI app — just /ask today (RAG seed); not the read path
 └── config.py         # Settings: config.toml (non-secret) + env/.env (secrets)
-frontend/             # Vite + React SPA — talks to the API only
+frontend/             # Vite + React SPA — reads Supabase directly (anon key); /ask for Q&A
 ```
 
 **The load-bearing rules:**
 - **The workflow file is the orchestration hub.** `workflows/digest.py` declares `DigestWorkflow` with every stage as a `@step` **method**, in pipeline order. A method resolves inputs, calls its stage's logic function, handles errors/branching, and returns the next `Event`. This is the right place for control flow (order, branches, fan-out) — but NOT for external I/O (no raw arXiv/LLM/SQL calls in a method; those go through a logic fn → client).
 - **Steps are pure logic.** `steps/<stage>/step.py` is a plain `async` function (e.g. `classify_papers(papers) -> list[Paper]`) with no `@step` decorator and no workflow imports; `events.py` holds the stage's `Event` class. A logic function that imports `workflows` or builds `Event`s is misplaced — the workflow method owns the event wrapping.
 - **Clients own all external I/O.** Every arXiv call, LLM/embedding call, LlamaParse call, and DB query lives in `clients/`. A logic function (or workflow method) containing a raw `httpx` request, an inline SDK call, or a raw SQL string is a layer violation — it should call a client function.
-- **The API is thin.** FastAPI route handlers validate input (Pydantic), call a workflow or a client, and shape the response. No business logic or raw SQL in a route handler.
-- **The frontend talks to the API only.** No direct DB access, no secrets. API calls go through a shared typed client, not scattered `fetch` calls.
+- **The API is thin, and small.** Only `/ask` lives here today (a placeholder; the RAG seed). Route handlers validate input (Pydantic), call a client, and shape the response — no business logic or raw SQL. The read path is NOT here.
+- **The frontend reads Supabase directly.** Papers/weeks/facets come from the `papers` table and the read-only views (`supabase/migrations/`) via the anon key + RLS, through the single data-access seam (`src/data/client.ts` → `SupabaseApiClient`) — not scattered `fetch`/`createClient` calls. No service-role key or secrets in the browser; only the public anon key. Derived aggregates belong in SQL views, not re-derived ad hoc.
 
 ## Step 1: Understand the Feature Scope
 
@@ -111,7 +111,7 @@ This is the most important step. For every new step, event, client function, wor
 - **Step logic (`steps/<stage>/step.py`)**: a pure `async` function, fully type-hinted, returning data (e.g. `list[Paper]`) — NOT an `Event`. No `@step`, no `workflows` import. `events.py` holds the stage's `Event` class.
 - **Clients**: external I/O only. No workflow/step imports leaking in. Raise on error so the workflow method can apply a retry policy.
 - **API**: thin handlers — validate, call, respond. Async. Dependency injection for clients.
-- **Frontend**: functional components, talk to the API through the shared client, props destructured in the signature.
+- **Frontend**: functional components, reach data through the hooks → `getClient()` seam (Supabase), never a concrete client or raw `fetch`, props destructured in the signature.
 
 ### Type Safety
 - **Python**: full type hints. No bare `Any` — use a precise type, a `TypeVar`, or `object`/`unknown`-style narrowing. Events, API request/response bodies, and config are **Pydantic models**. DB row types come from generated Supabase types, never hand-written.
@@ -126,7 +126,7 @@ This is the most important step. For every new step, event, client function, wor
 - No secrets or API keys in code — only `config.py` reads them from the environment.
 - Validate user input at the API boundary with Pydantic before it reaches a workflow or the DB.
 - Parameterized queries only — never build SQL by string concatenation.
-- New Supabase tables need RLS policies.
+- New Supabase tables/views need RLS policies (or explicit grants) — the frontend reads them with the public anon key, so anything exposed is world-readable. Never ship the service-role key to the browser.
 
 ### Layer Violations (call these out explicitly)
 - A logic function or workflow method making a raw HTTP/SDK/DB call instead of going through `clients/`.
@@ -134,7 +134,7 @@ This is the most important step. For every new step, event, client function, wor
 - A workflow method carrying heavy business logic that belongs in its stage's logic function.
 - SQL inside a workflow method or a FastAPI route handler.
 - A client importing a workflow or a step.
-- The frontend reading the database or env secrets directly instead of going through the API.
+- The frontend bypassing the `src/data/client.ts` seam (raw `createClient`/`fetch` in components), exposing a non-anon key, or re-deriving in JS what a SQL view should serve.
 
 ## Step 6: Report
 

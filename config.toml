@@ -70,10 +70,10 @@ smtp_starttls = true
 email_from = ""   # "arXiv ML Digest <you@gmail.com>"; blank falls back to SMTP_USERNAME
 weekly_insight_max_output_tokens = 512   # Tokens for the one-paragraph weekly insight.
 
-# --- API (read-only HTTP layer the web frontend talks to) ---
+# --- API (hosts the /ask endpoint; the frontend reads papers from Supabase directly) ---
 api_host = "127.0.0.1"
 api_port = 8000
-# Browser origins allowed by CORS. Add your deployed frontend's origin here.
+# Browser origins allowed by CORS when the SPA calls /ask. Add your deployed frontend's origin.
 cors_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
 # --- Storage ---

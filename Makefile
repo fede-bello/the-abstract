@@ -11,13 +11,13 @@ install: ## Install backend (uv) and frontend (npm) dependencies
 	uv sync
 	npm --prefix frontend install
 
-dev: ## Run the API (reload) and the Vite dev server together; Ctrl-C stops both
+dev: ## Run the /ask API (reload) and the Vite dev server together; Ctrl-C stops both
 	@trap 'kill 0' INT TERM EXIT; \
 		uv run arxiv-digest serve --reload & \
 		npm --prefix frontend run dev & \
 		wait
 
-api: ## Run only the read-only FastAPI server (with reload)
+api: ## Run only the FastAPI /ask server (with reload); browsing needs only `web`
 	uv run arxiv-digest serve --reload
 
 web: ## Run only the Vite dev server

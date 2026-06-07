@@ -117,10 +117,10 @@ class Settings(BaseSettings):
     email_from: str = Field(default="")  # "Name <addr>"; blank falls back to smtp_username
     weekly_insight_max_output_tokens: int = Field(default=512, gt=0)
 
-    # --- API (read-only HTTP layer the frontend talks to) ---
+    # --- API (hosts the /ask endpoint; the frontend reads papers from Supabase directly) ---
     api_host: str = Field(default="127.0.0.1")
     api_port: int = Field(default=8000, gt=0)
-    # Browser origins allowed by CORS; the Vite dev server runs on 5173.
+    # Browser origins allowed by CORS when the SPA calls /ask; the Vite dev server runs on 5173.
     cors_origins: list[str] = Field(
         default_factory=lambda: ["http://localhost:5173", "http://127.0.0.1:5173"]
     )

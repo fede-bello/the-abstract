@@ -30,16 +30,16 @@ backend/src/arxiv_digest/
 ├── workflows/   # digest.py (qa.py later) — the explicit pipeline: every @step METHOD here, in order
 ├── steps/<stage>/   # step.py = pure async logic fn; events.py = the stage's event class
 ├── clients/     # llm.py, db.py, arxiv.py, parse.py — ALL external I/O lives here
-├── api/         # FastAPI — thin HTTP layer over the workflows
+├── api/         # FastAPI — just /ask today (RAG seed); not the read path
 └── config.py    # Settings: loads config.toml (non-secret) + env/.env (secrets)
-frontend/        # Vite + React SPA — talks to the API only
+frontend/        # Vite + React SPA — reads Supabase directly (anon key); calls /ask for Q&A
 ```
 
 - **The workflow file is the orchestration hub.** `DigestWorkflow` in `workflows/digest.py` holds every stage as a `@step` **method**, in pipeline order. Each method calls its stage's logic function, handles errors/branching, and returns the next event. Order + branching live here, readable top-to-bottom.
 - **Steps are pure logic.** `steps/<stage>/step.py` is a plain `async` function (e.g. `classify_papers(papers) -> list[Paper]`) with no `@step`/workflow coupling; `events.py` holds the stage's event class. The workflow method wraps the logic's return into an event.
 - **Clients own all external I/O.** A raw HTTP/SDK/SQL call inside a step's logic or a workflow method is a layer violation — it belongs in `clients/`.
 - **Workflow primitives** (`ctx.send_event`, `@step(num_workers=N)`, `ctx.collect_events`, `Context[StateModel]`) go in the workflow methods, never hand-rolled `asyncio.gather`.
-- **The API and the weekly pipeline are two entry points into the same package**, sharing `clients/` and the DB.
+- **The frontend reads Supabase directly.** Papers, weekly issues, and facets come from the `papers` table (and the read-only views in `supabase/migrations/`) via the anon key + row-level security — there is no read API. Derived data PostgREST can't express (per-week/per-topic counts) lives in those SQL views. The only server-side endpoint is `/ask` (a placeholder; the seed for RAG, which needs server-side LLM keys). When that lands it deploys as a serverless function, and the SPA's `askDummy` swaps to call it.
 
 ## Conventions
 

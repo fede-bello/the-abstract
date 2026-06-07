@@ -1,7 +1,8 @@
-"""FastAPI application — the read-only HTTP layer the web frontend talks to.
+"""FastAPI application — the server-side endpoints the web frontend calls.
 
-Thin by design: every handler delegates to ``clients/db.py``. Run it with
-``uv run arxiv-digest serve`` (or ``uvicorn arxiv_digest.api.app:app``).
+The SPA reads papers/weeks/facets straight from Supabase via the anon key, so the only endpoint
+here is ``/ask`` — a placeholder today, the seed for RAG-backed Q&A (which needs server-side LLM
+keys). Run it with ``uv run arxiv-digest serve`` (or ``uvicorn arxiv_digest.api.app:app``).
 """
 
 from collections.abc import AsyncIterator
@@ -10,7 +11,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from arxiv_digest.api.routers import ask, meta, papers, weeks
+from arxiv_digest.api.routers import ask
 from arxiv_digest.clients.db import close_pool
 from arxiv_digest.config import settings
 
@@ -31,7 +32,4 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(papers.router)
-app.include_router(weeks.router)
-app.include_router(meta.router)
 app.include_router(ask.router)

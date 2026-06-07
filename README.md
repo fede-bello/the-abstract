@@ -65,18 +65,18 @@ The weekly pipeline and the API are two entry points into the same package, shar
 git clone git@github.com:fede-bello/the-abstract.git
 cd the-abstract
 
-# backend
+# backend — the weekly pipeline
 cp .env.example .env        # add your API keys (arXiv, LLM, LlamaCloud, DB)
 uv sync
 uv run arxiv-digest ingest  # run the weekly pipeline once to populate the DB
-uv run arxiv-digest serve   # start the read-only API (default http://127.0.0.1:8000)
-#   equivalently: uv run uvicorn arxiv_digest.api.app:app --reload
 
-# frontend (talks to the API above)
+# frontend — reads Supabase directly via the anon key (no API server needed to browse)
 cd frontend
-cp .env.example .env        # VITE_API_BASE_URL defaults to http://localhost:8000
+cp .env.example .env        # set VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY
 npm install && npm run dev
 ```
+
+The frontend reads papers, weekly issues, and facets straight from Supabase — the `papers` table's row-level security allows read-only public access to this public arXiv-derived data. The only server-side endpoint, `uv run arxiv-digest serve`, hosts a placeholder `/ask` (the seed for RAG-backed Q&A, which the SPA does not yet call).
 
 The frontend shows empty states until `arxiv-digest ingest` has populated the database; after a run, papers appear across This week / Browse / Archive / paper detail.
 

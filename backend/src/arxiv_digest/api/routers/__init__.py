@@ -1,1 +1,1 @@
-"""FastAPI routers — one module per resource, each a thin shell over ``clients/db.py``."""
+"""FastAPI routers. Only ``ask`` remains — the SPA reads everything else from Supabase."""
