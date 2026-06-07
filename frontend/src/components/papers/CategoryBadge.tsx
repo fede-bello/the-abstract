@@ -1,4 +1,4 @@
-import { CATEGORY_LABEL } from '@/data/mock/categories';
+import { CATEGORY_LABEL } from '@/data/categories';
 import styles from './CategoryBadge.module.css';
 
 interface CategoryBadgeProps {

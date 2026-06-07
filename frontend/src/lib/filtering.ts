@@ -1,8 +1,7 @@
-// Pure, testable filtering used by the mock client (and reusable client-side if a real API
-// ever returns unfiltered results). No React, no I/O.
+// Pure, testable keyword/facet filtering. BrowsePage applies the keyword filter client-side
+// (deferred) over papers the API already filtered by topic/category/date. No React, no I/O.
 
-import type { Paper, PaperFilters, TopicCount } from '@/data/types';
-import { TOPICS } from '@/data/mock/topics';
+import type { Paper, PaperFilters } from '@/data/types';
 
 function matchesKeyword(paper: Paper, q: string): boolean {
   const needle = q.trim().toLowerCase();
@@ -42,17 +41,4 @@ export function applyFilters(papers: Paper[], filters: PaperFilters = {}): Paper
         matchesKeyword(p, q),
     )
     .sort((a, b) => b.published.localeCompare(a.published));
-}
-
-/** Count papers per topic across a set, in taxonomy order, omitting empty topics. */
-export function topicCounts(papers: Paper[]): TopicCount[] {
-  const counts = new Map<string, number>();
-  for (const paper of papers) {
-    for (const topic of paper.topics) {
-      counts.set(topic, (counts.get(topic) ?? 0) + 1);
-    }
-  }
-  return TOPICS.map((title) => ({ title, count: counts.get(title) ?? 0 })).filter(
-    (tc) => tc.count > 0,
-  );
 }

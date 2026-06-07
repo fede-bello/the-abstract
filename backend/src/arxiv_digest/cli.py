@@ -52,6 +52,13 @@ async def _run_usage(weeks: int) -> None:
         )
 
 
+def _run_serve(host: str, port: int, *, reload: bool) -> None:
+    """Start the read-only FastAPI server (blocks until interrupted)."""
+    import uvicorn
+
+    uvicorn.run("arxiv_digest.api.app:app", host=host, port=port, reload=reload)
+
+
 async def _run_ingest(max_results: int, days_back: int) -> None:
     """Run the ingestion pipeline once and print the fetched papers with their dates."""
     # The timeout (default 24h) must outlast a long arXiv backoff; see settings.
@@ -87,6 +94,13 @@ def main() -> None:
         help=f"How many recent weeks to show (default {_DEFAULT_USAGE_WEEKS}).",
     )
 
+    serve = subparsers.add_parser("serve", help="Start the read-only FastAPI server.")
+    serve.add_argument("--host", default=settings.api_host, help="Bind address.")
+    serve.add_argument("--port", type=_positive_int, default=settings.api_port, help="Bind port.")
+    serve.add_argument(
+        "--reload", action="store_true", help="Auto-reload on code changes (development)."
+    )
+
     args = parser.parse_args()
 
     if args.command == "ingest":
@@ -95,6 +109,8 @@ def main() -> None:
         asyncio.run(_run_ingest(max_results, days_back))
     elif args.command == "usage":
         asyncio.run(_run_usage(args.weeks))
+    elif args.command == "serve":
+        _run_serve(args.host, args.port, reload=args.reload)
 
 
 if __name__ == "__main__":

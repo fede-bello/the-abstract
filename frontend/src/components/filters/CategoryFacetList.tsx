@@ -1,4 +1,4 @@
-import { CATEGORIES } from '@/data/mock/categories';
+import { CATEGORIES } from '@/data/categories';
 import styles from './FacetList.module.css';
 
 interface CategoryFacetListProps {
