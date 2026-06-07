@@ -39,6 +39,23 @@ export function weekBounds(iso: string): { start: string; end: string } {
   return { start: monday.toISOString(), end: sunday.toISOString() };
 }
 
+/** Inverse of {@link isoWeekKey}: Monday/Sunday bounding the given "2026-W23" key.
+ *
+ * ISO week 1 is the week containing Jan 4, so its Monday anchors the year; week W's Monday is
+ * (W-1) weeks later. Lets the Supabase client fetch a week's papers by date range — weeks are
+ * never stored.
+ */
+export function weekKeyBounds(weekKey: string): { start: string; end: string } {
+  const [yearPart, weekPart] = weekKey.split('-W');
+  const year = Number(yearPart);
+  const week = Number(weekPart);
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const week1Monday = new Date(jan4.getTime() - mondayIndex(jan4) * DAY_MS);
+  const monday = new Date(week1Monday.getTime() + (week - 1) * 7 * DAY_MS);
+  const sunday = new Date(monday.getTime() + 6 * DAY_MS);
+  return { start: monday.toISOString(), end: sunday.toISOString() };
+}
+
 /** "Week of Jun 1, 2026" from an ISO date (the week's Monday). */
 export function weekLabel(startIso: string): string {
   const d = new Date(startIso);
