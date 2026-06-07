@@ -24,8 +24,9 @@ frontend/dist/
 frontend/.vite/
 *.local
 
-# Data — never commit ingested papers, parsed PDFs, or local dumps
-data/
+# Data — never commit ingested papers, parsed PDFs, or local dumps.
+# Anchored to the repo root so it only matches the backend's runtime dir, not frontend/src/data/.
+/data/
 *.pdf
 # ...but the curated classifier benchmark is committed test data, not a runtime dump.
 !backend/tests/data/
