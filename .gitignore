@@ -24,6 +24,10 @@ frontend/dist/
 frontend/.vite/
 *.local
 
+# Supabase CLI local link state
+supabase/.temp/
+supabase/.branches/
+
 # Data — never commit ingested papers, parsed PDFs, or local dumps.
 # Anchored to the repo root so it only matches the backend's runtime dir, not frontend/src/data/.
 /data/
