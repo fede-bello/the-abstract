@@ -47,8 +47,8 @@ async def test_filters_papers_to_each_subscribers_interests(sent, monkeypatch):
     _with_subscribers(
         monkeypatch,
         [
-            Subscriber(email="all@x.com", interests=[]),
-            Subscriber(email="llm@x.com", interests=["LLMs"]),
+            Subscriber(email="all@x.com", interests=[], unsubscribe_token="tok-all"),
+            Subscriber(email="llm@x.com", interests=["LLMs"], unsubscribe_token="tok-llm"),
         ],
     )
 
@@ -62,7 +62,10 @@ async def test_filters_papers_to_each_subscribers_interests(sent, monkeypatch):
 
 
 async def test_skips_subscriber_with_no_matching_papers(sent, monkeypatch):
-    _with_subscribers(monkeypatch, [Subscriber(email="cv@x.com", interests=["Computer Vision"])])
+    _with_subscribers(
+        monkeypatch,
+        [Subscriber(email="cv@x.com", interests=["Computer Vision"], unsubscribe_token="tok-cv")],
+    )
 
     await dist_step.send_digest([_paper("u1", "On LLMs", ["LLMs"])])
 
@@ -70,7 +73,9 @@ async def test_skips_subscriber_with_no_matching_papers(sent, monkeypatch):
 
 
 async def test_no_papers_sends_nothing(sent, monkeypatch):
-    _with_subscribers(monkeypatch, [Subscriber(email="all@x.com", interests=[])])
+    _with_subscribers(
+        monkeypatch, [Subscriber(email="all@x.com", interests=[], unsubscribe_token="tok-all")]
+    )
 
     await dist_step.send_digest([])
 
@@ -101,7 +106,10 @@ async def test_one_failed_email_does_not_block_others(monkeypatch):
     monkeypatch.setattr(dist_step, "complete_structured", fake_insight)
     _with_subscribers(
         monkeypatch,
-        [Subscriber(email="bad@x.com", interests=[]), Subscriber(email="good@x.com", interests=[])],
+        [
+            Subscriber(email="bad@x.com", interests=[], unsubscribe_token="tok-bad"),
+            Subscriber(email="good@x.com", interests=[], unsubscribe_token="tok-good"),
+        ],
     )
 
     await dist_step.send_digest([_paper("u1", "On LLMs", ["LLMs"])])
@@ -115,7 +123,9 @@ async def test_sends_digest_without_insight_when_llm_fails(sent, monkeypatch):
         raise LLMError(msg)
 
     monkeypatch.setattr(dist_step, "complete_structured", failing_insight)
-    _with_subscribers(monkeypatch, [Subscriber(email="all@x.com", interests=[])])
+    _with_subscribers(
+        monkeypatch, [Subscriber(email="all@x.com", interests=[], unsubscribe_token="tok-all")]
+    )
 
     await dist_step.send_digest([_paper("u1", "On LLMs", ["LLMs"])])
 

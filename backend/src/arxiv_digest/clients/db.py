@@ -50,7 +50,9 @@ _DELETE_CHUNKS_SQL = "delete from paper_chunks where arxiv_id = $1"
 _INSERT_CHUNK_SQL = (
     "insert into paper_chunks (arxiv_id, chunk_index, content, embedding) values ($1, $2, $3, $4)"
 )
-_SELECT_ACTIVE_SUBSCRIBERS_SQL = "select email, interests from subscribers where is_active = true"
+_SELECT_ACTIVE_SUBSCRIBERS_SQL = (
+    "select email, interests, unsubscribe_token from subscribers where is_active = true"
+)
 
 _USAGE_COLUMNS = (
     "kind",
@@ -81,6 +83,7 @@ class Subscriber(BaseModel):
 
     email: str
     interests: list[str]
+    unsubscribe_token: str  # used to build the one-click unsubscribe link in each digest
 
 
 class UsageEvent(BaseModel):
@@ -249,4 +252,11 @@ async def get_active_subscribers() -> list[Subscriber]:
     except asyncpg.PostgresError as exc:
         msg = f"failed to read subscribers: {exc}"
         raise DBError(msg) from exc
-    return [Subscriber(email=row["email"], interests=list(row["interests"])) for row in rows]
+    return [
+        Subscriber(
+            email=row["email"],
+            interests=list(row["interests"]),
+            unsubscribe_token=str(row["unsubscribe_token"]),
+        )
+        for row in rows
+    ]

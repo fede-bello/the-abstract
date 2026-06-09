@@ -102,9 +102,16 @@ def _section_html(title: str, papers: list[Paper]) -> str:
 
 
 def render_digest_html(
-    heading: str, insight: str, papers: list[Paper], interests: list[str]
+    heading: str,
+    insight: str,
+    papers: list[Paper],
+    interests: list[str],
+    unsubscribe_url: str | None = None,
 ) -> str:
-    """Build the full HTML email: heading, weekly insight, then papers grouped by topic."""
+    """Build the full HTML email: heading, weekly insight, then papers grouped by topic.
+
+    ``unsubscribe_url`` (when given) is rendered as a one-click unsubscribe link in the footer.
+    """
     sections = _group_sections(papers, interests)
     insight_block = (
         f'<p style="font-size:15px;color:#333;line-height:1.6;background:#f7f7f9;'
@@ -114,11 +121,17 @@ def render_digest_html(
         else ""
     )
     body = "".join(_section_html(title, group) for title, group in sections)
+    unsubscribe_block = (
+        f' <a href="{html.escape(unsubscribe_url)}" style="color:#999;">Unsubscribe</a>.'
+        if unsubscribe_url
+        else ""
+    )
     return (
         '<div style="max-width:680px;margin:0 auto;font-family:Helvetica,Arial,sans-serif;">'
         f'<h1 style="font-size:22px;color:#111;">{html.escape(heading)}</h1>'
         f"{insight_block}{body}"
         '<p style="font-size:12px;color:#999;margin-top:32px;">'
-        "You are receiving this because you subscribed to the arXiv ML digest.</p>"
+        "You are receiving this because you subscribed to the arXiv ML digest."
+        f"{unsubscribe_block}</p>"
         "</div>"
     )
