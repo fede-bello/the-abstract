@@ -76,7 +76,7 @@ cp .env.example .env        # set VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY
 npm install && npm run dev
 ```
 
-The frontend reads papers, weekly issues, and facets straight from Supabase — the `papers` table's row-level security allows read-only public access to this public arXiv-derived data. The only server-side endpoint, `uv run arxiv-digest serve`, hosts a placeholder `/ask` (the seed for RAG-backed Q&A, which the SPA does not yet call).
+The frontend reads papers, weekly issues, and facets straight from Supabase — the `papers` table's row-level security allows read-only public access to this public arXiv-derived data. There is no API server: the backend is just the weekly pipeline, so the whole app hosts on Vercel (static SPA) + Supabase (DB), free.
 
 The frontend shows empty states until `arxiv-digest ingest` has populated the database; after a run, papers appear across This week / Browse / Archive / paper detail.
 

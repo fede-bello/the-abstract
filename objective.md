@@ -150,7 +150,9 @@ Papers are stored indefinitely. There is no automatic pruning or expiry policy.
 
 ### 6.3 Question & Answer Interface
 
-Subscribers can ask natural language questions against the full paper database via a dedicated web application. The system uses retrieval-augmented generation (RAG) to find relevant content and generate answers.
+> **Status: deferred — not implemented.** RAG Q&A needs server-side LLM calls, which would require hosting a backend. To keep the stack free and serverless (Vercel static SPA + Supabase), the app ships browse-only for now; the `paper_chunks` embeddings remain in the DB so this can be added later (e.g. as a serverless function).
+
+Subscribers could ask natural language questions against the full paper database via the web application, using retrieval-augmented generation (RAG) to find relevant content and generate answers.
 
 Query filtering options:
 
@@ -176,7 +178,7 @@ The email is HTML-formatted. For each useful paper it includes:
 - Assigned categories (as tags)
 - Short summary (3–4 bullets)
 - Link to the arXiv page
-- Link to the Q&A web app filtered to that paper
+- Link to the paper's page in the web app
 
 ### 7.3 Distribution
 
@@ -208,19 +210,20 @@ The mechanism for setting preferences (web UI, config file, command, etc.) is to
 
 ---
 
-## 9. Q&A Web Application
+## 9. Web Application
+
+A static single-page app (Vite + React) that reads Supabase directly via the public anon key — no API server. It hosts on Vercel for free.
 
 ### 9.1 Access
 
-A standalone web application available to all subscribers. No per-user authentication is specified at this stage beyond basic access control.
+Public, read-only. No per-user authentication; the anon key is gated by row-level security to read-only access over public arXiv-derived data.
 
 ### 9.2 Capabilities
 
 - Search and browse all stored papers
 - Filter by category, date, or keyword
-- Ask natural language questions answered from the paper database
 - View full summaries (short and long) for any paper
-- Access extracted figures and tables
+- _Deferred:_ natural-language Q&A over the database (see §6.3) and extracted figures/tables
 
 ---
 
@@ -236,7 +239,8 @@ A standalone web application available to all subscribers. No per-user authentic
 | Storage | Indefinite, full content | Embeddings for RAG |
 | Email digest | Weekly HTML email | Mailing list |
 | Personalization | Per-subscriber filters | Categories + keywords |
-| Q&A Web App | RAG over full paper DB | Open to subscribers |
+| Web app | Browse/filter the digest | Static SPA reading Supabase; Vercel + Supabase, free |
+| Q&A (RAG) | Natural-language questions | Deferred — needs a server |
 
 ---
 
