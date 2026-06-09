@@ -3,13 +3,13 @@ import { useState, type FormEvent } from 'react';
 import { getClient } from '@/data/client';
 import styles from './SubscribeForm.module.css';
 
-type Status = 'idle' | 'submitting' | 'subscribed' | 'already-subscribed' | 'error';
+type Status = 'idle' | 'submitting' | 'confirmation-sent' | 'already-subscribed' | 'error';
 
-// Mirrors the DB email-format check (migration 0005); a client-side guard for quick feedback.
+// A client-side guard for quick feedback; the Edge Function validates again server-side.
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 const MESSAGES: Record<Exclude<Status, 'idle' | 'submitting'>, string> = {
-  subscribed: 'You’re in — the next digest lands Monday.',
+  'confirmation-sent': 'Almost there — check your inbox to confirm.',
   'already-subscribed': 'You’re already on the list.',
   error: 'Something went wrong — please try again.',
 };
