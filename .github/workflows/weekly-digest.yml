@@ -28,13 +28,20 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
+      - name: Install the Claude CLI
+        # The claude_code backend shells out to the `claude` CLI, authenticated by the OAuth
+        # token below (a Claude subscription — no API key). Native installer, no Node needed.
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
       - name: Run the weekly pipeline (ingest + email)
         env:
-          # Use the pay-per-token API in CI (no interactive Claude CLI here). To run on a
-          # Claude subscription instead, drop ANTHROPIC_API_KEY, set LLM_BACKEND=claude_code,
-          # install the `claude` CLI, and provide CLAUDE_CODE_OAUTH_TOKEN.
-          LLM_BACKEND: litellm
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Run on the Claude subscription via the CLI's OAuth token (generate with
+          # `claude setup-token`). To use a pay-per-token API instead, set LLM_BACKEND=litellm
+          # and LLM_API_KEY (and drop CLAUDE_CODE_OAUTH_TOKEN); see config.toml for model strings.
+          LLM_BACKEND: claude_code
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           LLAMA_CLOUD_API_KEY: ${{ secrets.LLAMA_CLOUD_API_KEY }}
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           # Project URL (https://<ref>.supabase.co) — builds the unsubscribe link in each digest.

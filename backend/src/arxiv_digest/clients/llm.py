@@ -1,14 +1,15 @@
 """LLM client: structured completions via the Claude Code SDK or LiteLLM.
 
-Backend selection (``settings.llm_backend``):
-- ``claude_code`` — the Claude Code SDK (``claude-agent-sdk``), using the local CLI
-  subscription auth (no API key).
-- ``litellm`` — LiteLLM with an API key; provider-swappable by changing the model
-  string.
-- ``auto`` — prefer the Claude Code SDK, fall back to LiteLLM.
+Models are LiteLLM-style ``provider/model`` strings (e.g. ``anthropic/claude-haiku-4-5``,
+``openai/gpt-4o-mini``). Backend selection (``settings.llm_backend``):
+- ``claude_code`` — the Claude Code SDK (``claude-agent-sdk``), using the local CLI's Claude
+  subscription auth (no API key). Claude-only; the provider prefix is stripped off the model.
+- ``litellm`` — LiteLLM with ``settings.llm_api_key``; any provider, picked by the model prefix.
+- ``auto`` — prefer the subscription for Anthropic models, else fall back to LiteLLM.
 
-Heavy backend libraries are imported lazily inside their functions so that callers
-that never classify (e.g. ingestion-only runs) don't pay their import cost.
+Switching providers is an ``.env`` change (``LLM_API_KEY``) plus the model strings in config —
+no code change. Heavy backend libraries are imported lazily inside their functions so that
+callers that never classify (e.g. ingestion-only runs) don't pay their import cost.
 """
 
 import asyncio
@@ -58,9 +59,19 @@ def _claude_code_available() -> bool:
     return shutil.which("claude") is not None
 
 
+def _bare_model(model: str) -> str:
+    """Drop the ``provider/`` prefix from a model string (the Claude CLI wants the bare name)."""
+    return model.split("/", 1)[-1]
+
+
+def _is_anthropic_model(model: str) -> bool:
+    """True if ``model`` targets Anthropic (so the Claude subscription can serve it)."""
+    return "/" not in model or model.startswith("anthropic/")
+
+
 def backend_available() -> bool:
     """True if some LLM backend is usable, given the configured ``llm_backend``."""
-    has_key = bool(settings.anthropic_api_key.get_secret_value())
+    has_key = bool(settings.llm_api_key.get_secret_value())
     if settings.llm_backend == "litellm":
         return has_key
     if settings.llm_backend == "claude_code":
@@ -77,7 +88,7 @@ async def _complete_claude_code(system: str, user: str, schema: type[T], model: 
     from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, TextBlock, query
 
     options = ClaudeAgentOptions(
-        model=model,
+        model=_bare_model(model),  # the subscription is Claude-only; drop any "anthropic/" prefix
         system_prompt=system,
         allowed_tools=[],  # plain LLM call — no tools
         max_turns=1,
@@ -99,19 +110,23 @@ async def _complete_claude_code(system: str, user: str, schema: type[T], model: 
 async def _complete_litellm(  # noqa: PLR0913 — independent passthrough args, not a god-function
     system: str, user: str, schema: type[T], model: str, max_tokens: int, label: str | None
 ) -> T:
-    """Single-turn completion via LiteLLM (API key; provider-swappable by model string)."""
+    """Single-turn completion via LiteLLM. ``model`` is a full ``provider/model`` string.
+
+    ``api_key`` is the generic ``llm_api_key`` for whatever provider the prefix names; passing
+    ``None`` lets LiteLLM fall back to the provider's own env var (e.g. ``OPENAI_API_KEY``).
+    """
     from litellm import acompletion
 
     from arxiv_digest.clients.usage import record_litellm_usage
 
     response = await acompletion(
-        model=f"anthropic/{model}",
+        model=model,
         messages=[
             {"role": "system", "content": system},
             {"role": "user", "content": user},
         ],
         response_format=schema,
-        api_key=settings.anthropic_api_key.get_secret_value() or None,
+        api_key=settings.llm_api_key.get_secret_value() or None,
         max_tokens=max_tokens,
         timeout=settings.llm_timeout_seconds,
         num_retries=2,
@@ -143,8 +158,8 @@ async def complete_structured(  # noqa: PLR0913 — keyword-only options, not a 
     if settings.llm_backend == "litellm":
         return await _complete_litellm(system, user, schema, model, max_tokens, label)
 
-    # auto: prefer the Claude Code SDK, fall back to LiteLLM on any failure.
-    if _claude_code_available():
+    # auto: prefer the subscription for Anthropic models, fall back to LiteLLM on any failure.
+    if _claude_code_available() and _is_anthropic_model(model):
         try:
             return await _complete_claude_code(system, user, schema, model)
         except Exception:  # noqa: BLE001 — any SDK/auth failure should fall back to LiteLLM

@@ -43,7 +43,7 @@ def _to_paper(entry):
 async def test_classifier_benchmark():
     """The classifier should match expected useful/noise labels on the curated set."""
     if not backend_available():
-        pytest.skip("no LLM backend available (set ANTHROPIC_API_KEY or Claude Code auth)")
+        pytest.skip("no LLM backend available (set LLM_API_KEY or log in to the Claude CLI)")
 
     entries = json.loads(_BENCHMARK.read_text())
     papers = [_to_paper(e) for e in entries]
