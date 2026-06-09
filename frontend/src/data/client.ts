@@ -11,6 +11,9 @@ import type {
 } from './types';
 import { SupabaseApiClient } from './supabase/supabaseClient';
 
+/** Result of a newsletter signup — `already-subscribed` is a duplicate email, not an error. */
+export type SubscribeResult = 'subscribed' | 'already-subscribed';
+
 /** The data-access contract the hooks depend on. Implemented by SupabaseApiClient. */
 export interface ApiClient {
   listPapers(filters?: PaperFilters): Promise<Paper[]>;
@@ -20,6 +23,7 @@ export interface ApiClient {
   getWeek(weekKey: string): Promise<WeekIssueData | null>;
   listTopicsWithCounts(): Promise<TopicCount[]>;
   listCategories(): Promise<string[]>;
+  subscribe(email: string): Promise<SubscribeResult>;
 }
 
 let client: ApiClient | null = null;

@@ -1,4 +1,5 @@
 import { SITE } from '@/lib/constants';
+import { SubscribeForm } from './SubscribeForm';
 import styles from './SiteFooter.module.css';
 
 export function SiteFooter() {
@@ -6,6 +7,7 @@ export function SiteFooter() {
     <footer className={styles.footer}>
       <div className={styles.inner}>
         <p className={styles.tagline}>{SITE.tagline}</p>
+        <SubscribeForm />
         <p className={styles.meta}>
           <span>{SITE.name}</span>
           <span className={styles.dot}>/</span>
