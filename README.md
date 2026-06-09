@@ -84,7 +84,9 @@ Configuration — arXiv categories, the topic-tag list, schedule day, model name
 
 ### Weekly automation & email signup
 
-`.github/workflows/weekly-digest.yml` runs `arxiv-digest ingest` every Monday (and on demand from the Actions tab). That one command ingests the week's papers *and* emails the digest — its last step. Add these repository secrets for it to run: `ANTHROPIC_API_KEY`, `LLAMA_CLOUD_API_KEY`, `SUPABASE_DB_URL`, `SUPABASE_URL`, `SMTP_USERNAME`, `SMTP_PASSWORD`. It uses the pay-per-token Anthropic API (`LLM_BACKEND=litellm`); to run on a Claude subscription instead, swap to a `CLAUDE_CODE_OAUTH_TOKEN` (`claude setup-token`) and `LLM_BACKEND=claude_code`.
+`.github/workflows/weekly-digest.yml` runs `arxiv-digest ingest` every Monday (and on demand from the Actions tab). That one command ingests the week's papers *and* emails the digest — its last step. Add these repository secrets for it to run: `CLAUDE_CODE_OAUTH_TOKEN`, `LLAMA_CLOUD_API_KEY`, `SUPABASE_DB_URL`, `SUPABASE_URL`, `SMTP_USERNAME`, `SMTP_PASSWORD`.
+
+By default the LLM runs on your **Claude subscription** — no API key. Generate the token once with `claude setup-token` and store it as `CLAUDE_CODE_OAUTH_TOKEN`; the workflow installs the `claude` CLI and sets `LLM_BACKEND=claude_code`. To use a pay-per-token API instead (Anthropic, OpenAI, …), set `LLM_BACKEND=litellm`, point the model strings in `config.toml` at that provider (e.g. `openai/gpt-4o-mini`), and supply `LLM_API_KEY` instead of the OAuth token — no code change.
 
 Visitors join the mailing list from the footer signup form. Signup is **double opt-in**: it calls the `subscribe` Supabase Edge Function, which records a pending row and emails a confirmation link; the subscriber is only added once they click it. Every digest carries a one-click unsubscribe link. Three Edge Functions handle this — deploy them and set their secrets:
 

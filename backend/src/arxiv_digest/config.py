@@ -58,7 +58,9 @@ class Settings(BaseSettings):
     )
 
     # --- Secrets (read from the environment; SecretStr keeps them out of logs/reprs) ---
-    anthropic_api_key: SecretStr = SecretStr("")
+    # The API key for the litellm backend — any provider (Anthropic, OpenAI, …), matched to the
+    # model prefix. Blank when running on the Claude subscription (claude_code backend).
+    llm_api_key: SecretStr = SecretStr("")
     llama_cloud_api_key: SecretStr = SecretStr("")
     supabase_db_url: SecretStr = SecretStr("")
     smtp_username: SecretStr = SecretStr("")
@@ -82,9 +84,12 @@ class Settings(BaseSettings):
     arxiv_pdf_download_timeout_seconds: float = Field(default=60.0, gt=0)
 
     # --- LLM / classification ---
+    # Models are LiteLLM-style "provider/model" strings. The claude_code (subscription) backend
+    # strips the provider prefix; the litellm backend uses them as-is, so switching provider is
+    # just an edit here + the matching key in LLM_API_KEY (e.g. "openai/gpt-4o-mini").
     llm_backend: LLMBackend = Field(default="auto")
-    classification_model: str = Field(default="claude-haiku-4-5-20251001")
-    summarization_model: str = Field(default="claude-sonnet-4-6")
+    classification_model: str = Field(default="anthropic/claude-haiku-4-5-20251001")
+    summarization_model: str = Field(default="anthropic/claude-sonnet-4-6")
     summarization_max_output_tokens: int = Field(default=2_048, gt=0)
     llm_timeout_seconds: float = Field(default=60.0, gt=0)
     llm_max_concurrency: int = Field(default=4, gt=0)
