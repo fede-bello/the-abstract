@@ -69,6 +69,9 @@ smtp_port = 587
 smtp_starttls = true
 email_from = ""   # "arXiv ML Digest <you@gmail.com>"; blank falls back to SMTP_USERNAME
 weekly_insight_max_output_tokens = 512   # Tokens for the one-paragraph weekly insight.
+# Supabase project URL — builds the digest's unsubscribe link (-> the `unsubscribe` Edge
+# Function). Per-deployment; set it here or via the SUPABASE_URL env var. Blank = no link.
+supabase_url = ""
 
 # --- Storage ---
 data_dir = "data"   # Root directory for downloaded files.

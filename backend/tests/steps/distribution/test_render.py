@@ -33,6 +33,20 @@ def test_omits_insight_block_when_insight_is_empty():
     assert "border-left:3px solid" not in html
 
 
+def test_renders_unsubscribe_link_when_url_given():
+    url = "https://x.supabase.co/functions/v1/unsubscribe?token=abc"
+    html = render_digest_html("Digest", "", [_paper("A Paper", ["LLMs"])], [], url)
+
+    assert f'href="{url}"' in html
+    assert "Unsubscribe" in html
+
+
+def test_omits_unsubscribe_link_when_no_url():
+    html = render_digest_html("Digest", "", [_paper("A Paper", ["LLMs"])], [])
+
+    assert "Unsubscribe" not in html
+
+
 def test_escapes_html_in_paper_title():
     html = render_digest_html("Digest", "", [_paper("Attention <is> & All", ["LLMs"])], [])
 

@@ -116,6 +116,9 @@ class Settings(BaseSettings):
     smtp_starttls: bool = Field(default=True)
     email_from: str = Field(default="")  # "Name <addr>"; blank falls back to smtp_username
     weekly_insight_max_output_tokens: int = Field(default=512, gt=0)
+    # Supabase project URL (e.g. https://<ref>.supabase.co), used to build the unsubscribe link
+    # in each digest (it points at the `unsubscribe` Edge Function). Blank = no link rendered.
+    supabase_url: str = Field(default="")
 
     # --- Storage ---
     data_dir: Path = Field(default=Path("data"))

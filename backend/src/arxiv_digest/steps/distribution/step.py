@@ -74,6 +74,12 @@ def _digest_title() -> str:
     return f"arXiv ML Digest — week of {today:%Y-%m-%d}"
 
 
+def _unsubscribe_url(token: str) -> str | None:
+    """The one-click unsubscribe link for a subscriber, or ``None`` if no base URL is configured."""
+    base = settings.supabase_url.rstrip("/")
+    return f"{base}/functions/v1/unsubscribe?token={token}" if base else None
+
+
 async def send_digest(papers: list[Paper]) -> None:
     """Render and email the weekly digest to every active subscriber."""
     if not papers:
@@ -90,7 +96,8 @@ async def send_digest(papers: list[Paper]) -> None:
         selected = _papers_for(papers, subscriber.interests)
         if not selected:
             continue
-        body = render_digest_html(title, insight, selected, subscriber.interests)
+        unsubscribe_url = _unsubscribe_url(subscriber.unsubscribe_token)
+        body = render_digest_html(title, insight, selected, subscriber.interests, unsubscribe_url)
         try:
             await send_email(to=subscriber.email, subject=title, html=body)
         except EmailError:

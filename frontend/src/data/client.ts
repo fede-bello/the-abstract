@@ -11,8 +11,9 @@ import type {
 } from './types';
 import { SupabaseApiClient } from './supabase/supabaseClient';
 
-/** Result of a newsletter signup — `already-subscribed` is a duplicate email, not an error. */
-export type SubscribeResult = 'subscribed' | 'already-subscribed';
+/** Result of a newsletter signup. `confirmation-sent` means an opt-in email is on its way;
+ *  `already-subscribed` is an already-confirmed email (not an error). */
+export type SubscribeResult = 'confirmation-sent' | 'already-subscribed';
 
 /** The data-access contract the hooks depend on. Implemented by SupabaseApiClient. */
 export interface ApiClient {

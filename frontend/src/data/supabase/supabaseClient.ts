@@ -175,13 +175,13 @@ export class SupabaseApiClient implements ApiClient {
   }
 
   async subscribe(email: string): Promise<SubscribeResult> {
-    // INSERT-only: the anon key has no SELECT on subscribers, so we don't chain `.select()`.
-    // A unique-violation (23505) means the email is already on the list — a success, not an error.
-    const { error } = await this.db.from('subscribers').insert({ email });
-    if (error) {
-      if (error.code === '23505') return 'already-subscribed';
-      throw new Error(`failed to subscribe: ${error.message}`);
-    }
-    return 'subscribed';
+    // Double opt-in runs server-side: the `subscribe` Edge Function records a pending row and
+    // emails a confirmation link (the anon key can't read/write the private subscribers table).
+    const { data, error } = await this.db.functions.invoke<{ status: SubscribeResult }>(
+      'subscribe',
+      { body: { email } },
+    );
+    if (error || !data) throw new Error(`failed to subscribe: ${error?.message ?? 'no response'}`);
+    return data.status;
   }
 }

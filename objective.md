@@ -223,7 +223,7 @@ Public, read-only. No per-user authentication; the anon key is gated by row-leve
 - Search and browse all stored papers
 - Filter by category, date, or keyword
 - View full summaries (short and long) for any paper
-- Subscribe to the weekly email digest (footer form → Supabase, anon insert-only)
+- Subscribe to the weekly email digest (footer form → double opt-in via a Supabase Edge Function; every digest has a one-click unsubscribe link)
 - _Deferred:_ natural-language Q&A over the database (see §6.3) and extracted figures/tables
 
 ---
