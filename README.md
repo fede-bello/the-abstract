@@ -84,9 +84,18 @@ Configuration — arXiv categories, the topic-tag list, schedule day, model name
 
 ### Weekly automation & email signup
 
-`.github/workflows/weekly-digest.yml` runs `arxiv-digest ingest` every Monday (and on demand from the Actions tab). That one command ingests the week's papers *and* emails the digest — its last step. Add these repository secrets for it to run: `ANTHROPIC_API_KEY`, `LLAMA_CLOUD_API_KEY`, `SUPABASE_DB_URL`, `SMTP_USERNAME`, `SMTP_PASSWORD`. It uses the pay-per-token Anthropic API (`LLM_BACKEND=litellm`); to run on a Claude subscription instead, swap to a `CLAUDE_CODE_OAUTH_TOKEN` (`claude setup-token`) and `LLM_BACKEND=claude_code`.
+`.github/workflows/weekly-digest.yml` runs `arxiv-digest ingest` every Monday (and on demand from the Actions tab). That one command ingests the week's papers *and* emails the digest — its last step. Add these repository secrets for it to run: `ANTHROPIC_API_KEY`, `LLAMA_CLOUD_API_KEY`, `SUPABASE_DB_URL`, `SUPABASE_URL`, `SMTP_USERNAME`, `SMTP_PASSWORD`. It uses the pay-per-token Anthropic API (`LLM_BACKEND=litellm`); to run on a Claude subscription instead, swap to a `CLAUDE_CODE_OAUTH_TOKEN` (`claude setup-token`) and `LLM_BACKEND=claude_code`.
 
-Visitors join the mailing list from the footer signup form, which inserts straight into Supabase via the anon key (migration `0005` adds an insert-only policy — emails are never readable through the anon key). Apply migrations `0001`–`0005` to your Supabase project.
+Visitors join the mailing list from the footer signup form. Signup is **double opt-in**: it calls the `subscribe` Supabase Edge Function, which records a pending row and emails a confirmation link; the subscriber is only added once they click it. Every digest carries a one-click unsubscribe link. Three Edge Functions handle this — deploy them and set their secrets:
+
+```bash
+supabase functions deploy subscribe
+supabase functions deploy confirm --no-verify-jwt       # opened from an email link (no auth)
+supabase functions deploy unsubscribe --no-verify-jwt
+supabase secrets set SMTP_USERNAME=... SMTP_PASSWORD=...  # reuses the digest's Gmail creds
+```
+
+Apply migrations `0001`–`0006` to your Supabase project. Emails stay private — the anon key can neither read the `subscribers` table nor write to it (signup goes through the service-role Edge Function).
 
 ## Contributing
 
