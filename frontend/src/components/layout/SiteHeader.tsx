@@ -37,7 +37,6 @@ export function SiteHeader() {
               }
             >
               {item.label}
-              {item.beta && <sup className={styles.beta}>β</sup>}
             </NavLink>
           ))}
           <ThemeToggle />

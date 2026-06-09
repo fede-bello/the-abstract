@@ -137,15 +137,6 @@ class PaperTopics(BaseModel):
     )
 
 
-def taxonomy_titles() -> list[str]:
-    """Return every topic display title in taxonomy order — the single source of truth.
-
-    ``PaperTopics`` declares the taxonomy field-by-field; the API serves topic facets in this
-    same order (topical concerns first, then transversal methods).
-    """
-    return [field.title or name for name, field in PaperTopics.model_fields.items()]
-
-
 def _selected_titles(topics: PaperTopics) -> list[str]:
     """Return the display titles of the topics the model marked true."""
     return [

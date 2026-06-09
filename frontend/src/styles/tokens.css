@@ -1,7 +1,7 @@
 /* Design tokens — "Modern Scientific": high-contrast warm-white/ink, one electric accent,
    strict grid, oversized fluid grotesque type. Light is the default; [data-theme="dark"]
    overrides the color set only. "Invert" tokens are for surfaces that flip against the page
-   (footer, active nav, primary buttons, user chat bubble) so they stay consistent in both themes. */
+   (footer, active nav, primary buttons) so they stay consistent in both themes. */
 
 :root {
   /* --- Color (light) --- */

@@ -6,21 +6,17 @@ export const ROUTES = {
   paper: (arxivId: string) => `/paper/${arxivId}`,
   archive: '/archive',
   week: (weekKey: string) => `/archive/${weekKey}`,
-  ask: '/ask',
 } as const;
 
 export interface NavItem {
   label: string;
   to: string;
-  /** Marks the dummy/preview feature so the nav can badge it. */
-  beta?: boolean;
 }
 
 export const NAV_ITEMS: NavItem[] = [
   { label: 'This week', to: ROUTES.home },
   { label: 'Browse', to: ROUTES.browse },
   { label: 'Archive', to: ROUTES.archive },
-  { label: 'Ask', to: ROUTES.ask, beta: true },
 ];
 
 export const SITE = {

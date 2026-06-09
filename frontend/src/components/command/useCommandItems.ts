@@ -34,7 +34,6 @@ export function useCommandItems({ toggleTheme }: ExtraActions): CommandItem[] {
       { id: 'go-home', kind: 'page', label: 'This week', keywords: 'this week home latest', to: ROUTES.home },
       { id: 'go-browse', kind: 'page', label: 'Browse', keywords: 'browse all papers filter', to: ROUTES.browse },
       { id: 'go-archive', kind: 'page', label: 'Archive', keywords: 'archive past issues weeks', to: ROUTES.archive },
-      { id: 'go-ask', kind: 'page', label: 'Ask', keywords: 'ask question chat qa', to: ROUTES.ask },
     ];
 
     const actions: CommandItem[] = [
