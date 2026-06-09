@@ -1,0 +1,42 @@
+name: Weekly digest
+
+# Runs the whole pipeline once a week: fetch the last 7 days of arXiv ML papers, classify /
+# parse / categorize / summarize, store them in Supabase, and email the digest to subscribers.
+# `arxiv-digest ingest` does all of that in one command (the email is the pipeline's last step).
+on:
+  schedule:
+    - cron: "0 13 * * 1" # Mondays 13:00 UTC. GitHub cron is UTC and may lag a few minutes.
+  workflow_dispatch: {} # allow manual runs from the Actions tab
+
+concurrency:
+  group: weekly-digest
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.11"
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run the weekly pipeline (ingest + email)
+        env:
+          # Use the pay-per-token API in CI (no interactive Claude CLI here). To run on a
+          # Claude subscription instead, drop ANTHROPIC_API_KEY, set LLM_BACKEND=claude_code,
+          # install the `claude` CLI, and provide CLAUDE_CODE_OAUTH_TOKEN.
+          LLM_BACKEND: litellm
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          LLAMA_CLOUD_API_KEY: ${{ secrets.LLAMA_CLOUD_API_KEY }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        run: uv run arxiv-digest ingest
