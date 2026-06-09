@@ -33,7 +33,7 @@ backend/src/arxiv_digest/
 frontend/        # Vite + React SPA — reads Supabase directly (anon key); no backend server
 ```
 
-There is no API server: the backend is purely the weekly pipeline (writes to Supabase), and the SPA reads Supabase directly. The whole thing hosts on Vercel (static SPA) + Supabase (DB) for free.
+There is no API server: the backend is purely the weekly pipeline (writes to Supabase), and the SPA reads Supabase directly. The whole thing hosts on Vercel (static SPA) + Supabase (DB) for free. The pipeline runs weekly via a GitHub Actions cron (`.github/workflows/weekly-digest.yml`) — `arxiv-digest ingest` ingests *and* emails the digest (its last step). The SPA's footer form lets visitors join the mailing list, inserting into `subscribers` via the anon key (insert-only policy; emails stay unreadable through that key).
 
 - **The workflow file is the orchestration hub.** `DigestWorkflow` in `workflows/digest.py` holds every stage as a `@step` **method**, in pipeline order. Each method calls its stage's logic function, handles errors/branching, and returns the next event. Order + branching live here, readable top-to-bottom.
 - **Steps are pure logic.** `steps/<stage>/step.py` is a plain `async` function (e.g. `classify_papers(papers) -> list[Paper]`) with no `@step`/workflow coupling; `events.py` holds the stage's event class. The workflow method wraps the logic's return into an event.

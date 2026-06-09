@@ -8,7 +8,7 @@
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-import type { ApiClient } from '@/data/client';
+import type { ApiClient, SubscribeResult } from '@/data/client';
 import type {
   Paper,
   PaperFilters,
@@ -172,5 +172,16 @@ export class SupabaseApiClient implements ApiClient {
       .returns<{ category: string }[]>();
     if (error) throw new Error(`failed to list categories: ${error.message}`);
     return data.map((row) => row.category);
+  }
+
+  async subscribe(email: string): Promise<SubscribeResult> {
+    // INSERT-only: the anon key has no SELECT on subscribers, so we don't chain `.select()`.
+    // A unique-violation (23505) means the email is already on the list — a success, not an error.
+    const { error } = await this.db.from('subscribers').insert({ email });
+    if (error) {
+      if (error.code === '23505') return 'already-subscribed';
+      throw new Error(`failed to subscribe: ${error.message}`);
+    }
+    return 'subscribed';
   }
 }
