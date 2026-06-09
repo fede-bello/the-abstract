@@ -3,8 +3,6 @@
 // key; swapping the data source is a one-line change here.
 
 import type {
-  AskResponse,
-  AskScope,
   Paper,
   PaperFilters,
   TopicCount,
@@ -22,7 +20,6 @@ export interface ApiClient {
   getWeek(weekKey: string): Promise<WeekIssueData | null>;
   listTopicsWithCounts(): Promise<TopicCount[]>;
   listCategories(): Promise<string[]>;
-  askDummy(question: string, scope: AskScope): Promise<AskResponse>; // placeholder until RAG lands
 }
 
 let client: ApiClient | null = null;

@@ -71,12 +71,6 @@ export default function PaperDetailPage() {
           <ExternalLink href={paper.pdf_url} className={styles.action}>
             PDF
           </ExternalLink>
-          <Link
-            to={`${ROUTES.ask}?paper=${encodeURIComponent(paper.arxiv_id)}`}
-            className={styles.actionAccent}
-          >
-            Ask about this paper →
-          </Link>
         </div>
       </header>
 

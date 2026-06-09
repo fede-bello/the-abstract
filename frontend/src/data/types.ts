@@ -61,30 +61,3 @@ export interface WeekIssueData {
   week: WeekSummary;
   papers: Paper[];
 }
-
-// --- Q&A (dummy for now; same shape the real RAG endpoint will return) ---
-
-export type ChatRole = 'user' | 'assistant';
-
-export interface ChatMessage {
-  id: string;
-  role: ChatRole;
-  content: string;
-  citations?: AskCitation[];
-  pending?: boolean;
-}
-
-export interface AskScope {
-  paperId?: string;
-  topics?: string[];
-}
-
-export interface AskCitation {
-  arxiv_id: string;
-  title: string;
-}
-
-export interface AskResponse {
-  answer: string;
-  citations: AskCitation[];
-}

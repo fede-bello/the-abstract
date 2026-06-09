@@ -10,7 +10,6 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 import type { ApiClient } from '@/data/client';
 import type {
-  AskResponse,
   Paper,
   PaperFilters,
   TopicCount,
@@ -26,13 +25,6 @@ const LIST_COLUMNS =
   'arxiv_id, entry_id, title, abstract, authors, primary_category, categories, comment, ' +
   'journal_ref, doi, published, updated, pdf_url, topics, classification_rationale, ' +
   'summary_short, summary_long, summary_conclusions';
-
-// The same honest placeholder the (future) RAG endpoint will replace. Returned client-side so
-// the browsing app needs no server at all until Q&A is built.
-const ASK_PLACEHOLDER =
-  "Q&A over the digest isn't available yet — retrieval-augmented answers over the indexed " +
-  'papers are coming soon. In the meantime, browse the weekly issues and use the filters to ' +
-  'find papers by topic, category, date, or keyword.';
 
 // A `papers` row as returned by PostgREST: flat columns, summary split across three fields.
 interface PaperRow {
@@ -180,11 +172,5 @@ export class SupabaseApiClient implements ApiClient {
       .returns<{ category: string }[]>();
     if (error) throw new Error(`failed to list categories: ${error.message}`);
     return data.map((row) => row.category);
-  }
-
-  async askDummy(): Promise<AskResponse> {
-    // No server yet: return the honest placeholder (the question/scope args are ignored). The
-    // real RAG endpoint lands as a serverless function later, and this method will call it.
-    return { answer: ASK_PLACEHOLDER, citations: [] };
   }
 }
