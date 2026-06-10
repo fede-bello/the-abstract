@@ -154,5 +154,6 @@ async def send_preview(to: str, count: int) -> None:
         interests=[],
         unsubscribe_url="https://example.com/functions/v1/unsubscribe?token=preview",
         highlights=highlights,
+        site_url="https://the-abstract.example.com",
     )
     await send_email(to=to, subject=f"arXiv ML Digest: preview ({count} papers)", html=html)

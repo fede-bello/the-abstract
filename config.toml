@@ -74,6 +74,9 @@ weekly_insight_max_output_tokens = 512   # Tokens for the one-paragraph weekly i
 # Supabase project URL — builds the digest's unsubscribe link (-> the `unsubscribe` Edge
 # Function). Per-deployment; set it here or via the SUPABASE_URL env var. Blank = no link.
 supabase_url = ""
+# Public site URL (e.g. https://the-abstract.vercel.app). Digest paper titles link to the
+# paper's page on the site (/paper/<arxiv_id>); blank falls back to linking to arXiv.
+site_url = "https://the-abstract.vercel.app"
 
 # --- Storage ---
 data_dir = "data"   # Root directory for downloaded files.

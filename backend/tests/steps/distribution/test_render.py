@@ -27,6 +27,21 @@ def test_includes_heading_insight_and_paper_link():
     assert "key result" in html
 
 
+def test_title_links_to_site_while_read_link_stays_on_arxiv():
+    paper = _paper(
+        "Cool Paper", ["LLMs"], arxiv_id="2401.00001", entry_id="http://arxiv.org/abs/2401.00001"
+    )
+
+    html = render_digest_html(
+        "Digest", "", [paper], [], site_url="https://the-abstract.example.com"
+    )
+
+    # Title points at the paper's page on the site...
+    assert 'href="https://the-abstract.example.com/paper/2401.00001"' in html
+    # ...while "Read on arXiv" still points at arXiv.
+    assert 'href="http://arxiv.org/abs/2401.00001"' in html
+
+
 def test_omits_insight_block_when_insight_is_empty():
     with_insight = render_digest_html("D", "the weekly theme line", [_paper("A", ["LLMs"])], [])
     without = render_digest_html("D", "", [_paper("A", ["LLMs"])], [])

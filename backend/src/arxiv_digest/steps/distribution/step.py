@@ -109,7 +109,13 @@ async def send_digest(papers: list[Paper]) -> None:
             continue
         unsubscribe_url = _unsubscribe_url(subscriber.unsubscribe_token)
         body = render_digest_html(
-            heading, insight, selected, subscriber.interests, unsubscribe_url, highlights=highlights
+            heading,
+            insight,
+            selected,
+            subscriber.interests,
+            unsubscribe_url,
+            highlights=highlights,
+            site_url=settings.site_url or None,
         )
         try:
             await send_email(to=subscriber.email, subject=subject, html=body)

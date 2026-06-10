@@ -60,6 +60,13 @@ def _teaser(paper: Paper) -> str:
     return text[:_TEASER_CHARS].rsplit(" ", 1)[0] + "…"
 
 
+def _paper_url(paper: Paper, site_url: str | None) -> str:
+    """The link a paper's title uses: its page on the site, or the arXiv abstract as fallback."""
+    if site_url:
+        return f"{site_url.rstrip('/')}/paper/{paper.arxiv_id}"
+    return paper.entry_id
+
+
 def _matching_topics(paper: Paper, interests: list[str]) -> list[str]:
     """The paper's topics a subscriber cares about — all of them when ``interests`` is empty."""
     if not interests:
@@ -112,12 +119,13 @@ def _tags_html(paper: Paper) -> str:
     )
 
 
-def _full_card(paper: Paper, *, first: bool) -> str:
-    """A full paper card: linked title, authors, prose summary, topic chips + arXiv link."""
+def _full_card(paper: Paper, *, first: bool, site_url: str | None) -> str:
+    """A full paper card: title (-> site), authors, prose summary, topic chips + arXiv link."""
     divider = "" if first else f"border-top:1px solid {_RULE};"
+    title_url = html.escape(_paper_url(paper, site_url))
     return (
         f'<div style="padding:20px 0;{divider}">'
-        f'<a href="{html.escape(paper.entry_id)}" style="font-family:{_SANS};font-size:17px;'
+        f'<a href="{title_url}" style="font-family:{_SANS};font-size:17px;'
         f'font-weight:700;line-height:1.32;color:{_INK};text-decoration:none;">'
         f"{html.escape(paper.title)}</a>"
         f'<div style="font-family:{_SANS};font-size:13px;color:{_MUTED};margin:6px 0 11px;">'
@@ -132,12 +140,13 @@ def _full_card(paper: Paper, *, first: bool) -> str:
     )
 
 
-def _compact_row(paper: Paper, *, first: bool) -> str:
-    """A compact one-line entry: linked title plus a short teaser."""
+def _compact_row(paper: Paper, *, first: bool, site_url: str | None) -> str:
+    """A compact one-line entry: title (-> site) plus a short teaser."""
     divider = "" if first else f"border-top:1px solid {_RULE};"
+    title_url = html.escape(_paper_url(paper, site_url))
     return (
         f'<div style="padding:11px 0;{divider}">'
-        f'<a href="{html.escape(paper.entry_id)}" style="font-family:{_SANS};font-size:14.5px;'
+        f'<a href="{title_url}" style="font-family:{_SANS};font-size:14.5px;'
         f'font-weight:600;line-height:1.4;color:{_INK};text-decoration:none;">'
         f"{html.escape(paper.title)}</a>"
         f'<div style="font-family:{_SANS};font-size:13px;line-height:1.5;color:{_MUTED};'
@@ -146,27 +155,34 @@ def _compact_row(paper: Paper, *, first: bool) -> str:
     )
 
 
-def _full_sections(sections: list[tuple[str, list[Paper]]]) -> str:
+def _full_sections(sections: list[tuple[str, list[Paper]]], site_url: str | None) -> str:
     """Every paper as a full card, grouped under its topic label (small digests)."""
     return "".join(
         _label(title, _ACCENT, top=30)
-        + "".join(_full_card(paper, first=i == 0) for i, paper in enumerate(group))
+        + "".join(
+            _full_card(paper, first=i == 0, site_url=site_url) for i, paper in enumerate(group)
+        )
         for title, group in sections
     )
 
 
-def _spotlight_and_rest(sections: list[tuple[str, list[Paper]]], spotlight: list[Paper]) -> str:
+def _spotlight_and_rest(
+    sections: list[tuple[str, list[Paper]]], spotlight: list[Paper], site_url: str | None
+) -> str:
     """A Spotlight of full cards, then 'More this week' as compact rows grouped by topic."""
     spot_ids = {paper.arxiv_id for paper in spotlight}
     spot_html = _label("Spotlight", _ACCENT, top=28) + "".join(
-        _full_card(paper, first=i == 0) for i, paper in enumerate(spotlight)
+        _full_card(paper, first=i == 0, site_url=site_url) for i, paper in enumerate(spotlight)
     )
     rest_groups = []
     for title, group in sections:
         remaining = [paper for paper in group if paper.arxiv_id not in spot_ids]
         if not remaining:
             continue
-        rows = "".join(_compact_row(paper, first=i == 0) for i, paper in enumerate(remaining))
+        rows = "".join(
+            _compact_row(paper, first=i == 0, site_url=site_url)
+            for i, paper in enumerate(remaining)
+        )
         rest_groups.append(_label(title, _MUTED, top=18) + rows)
     rest_html = (
         _label("More this week", _ACCENT, top=34) + "".join(rest_groups) if rest_groups else ""
@@ -182,12 +198,14 @@ def render_digest_html(  # noqa: PLR0913 — render entrypoint; keyword-only opt
     unsubscribe_url: str | None = None,
     *,
     highlights: Collection[str] = (),
+    site_url: str | None = None,
 ) -> str:
     """Build the full HTML email: header, weekly insight, then the papers.
 
     ``highlights`` are the arXiv ids of the standout papers; past ``_SPOTLIGHT_MIN`` papers they
     become a Spotlight and the rest collapse into a compact index. ``unsubscribe_url`` (when
-    given) is rendered as a one-click unsubscribe link in the footer.
+    given) is rendered as a one-click unsubscribe link in the footer. ``site_url`` (when given)
+    makes each paper title link to its page on the site; otherwise titles link to arXiv.
     """
     sections = _group_sections(papers, interests)
     total = sum(len(group) for _, group in sections)
@@ -201,9 +219,9 @@ def render_digest_html(  # noqa: PLR0913 — render entrypoint; keyword-only opt
         key=lambda p: highlight_order[p.arxiv_id],
     )
     body = (
-        _spotlight_and_rest(sections, spotlight)
+        _spotlight_and_rest(sections, spotlight, site_url)
         if total > _SPOTLIGHT_MIN and spotlight
-        else _full_sections(sections)
+        else _full_sections(sections, site_url)
     )
 
     insight_block = (
