@@ -52,6 +52,14 @@ async def _run_usage(weeks: int) -> None:
         )
 
 
+async def _run_preview_email(to: str, count: int) -> None:
+    """Send a dummy digest to ``to`` for iterating on the email design."""
+    from arxiv_digest.steps.distribution.preview import send_preview
+
+    await send_preview(to, count)
+    print(f"Sent a {count}-paper preview digest to {to}.")
+
+
 async def _run_ingest(max_results: int, days_back: int) -> None:
     """Run the ingestion pipeline once and print the fetched papers with their dates."""
     # The timeout (default 24h) must outlast a long arXiv backoff; see settings.
@@ -87,6 +95,14 @@ def main() -> None:
         help=f"How many recent weeks to show (default {_DEFAULT_USAGE_WEEKS}).",
     )
 
+    preview = subparsers.add_parser(
+        "preview-email", help="Email a dummy digest to preview the design (no pipeline)."
+    )
+    preview.add_argument("--to", required=True, help="Recipient address for the preview.")
+    preview.add_argument(
+        "--count", type=_positive_int, default=20, help="How many dummy papers (default 20)."
+    )
+
     args = parser.parse_args()
 
     if args.command == "ingest":
@@ -95,6 +111,8 @@ def main() -> None:
         asyncio.run(_run_ingest(max_results, days_back))
     elif args.command == "usage":
         asyncio.run(_run_usage(args.weeks))
+    elif args.command == "preview-email":
+        asyncio.run(_run_preview_email(args.to, args.count))
 
 
 if __name__ == "__main__":

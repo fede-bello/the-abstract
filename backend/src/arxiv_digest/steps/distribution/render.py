@@ -1,18 +1,35 @@
 """Render the weekly digest as a self-contained HTML email.
 
-Pure functions only — no I/O. Papers are grouped into sections by their primary (first matching)
-topic — each paper appears once, with its other topics still shown as tags; untagged papers fall
-into an "Other" section shown only to all-topics subscribers. All dynamic text is escaped and
-styles are inlined for email clients.
+Pure functions only, no I/O. Below ``_SPOTLIGHT_MIN`` papers, every paper is shown as a full
+card grouped by topic. Past that, the digest splits into a short Spotlight (the standout papers
+the insight call picked, as full cards) and a compact "More this week" index (everything else as
+one-line links grouped by topic), so a 20+ paper week stays skimmable. All dynamic text is
+escaped and styles are inlined, since email clients (Gmail especially) strip <style>, <details>,
+and JS. The look mirrors the site: warm paper, one electric-blue accent, monospace labels.
 """
 
 import html
+from collections.abc import Collection
 
 from arxiv_digest.clients.arxiv import Paper
 
 _OTHER_SECTION = "Other notable papers"
-_MAX_AUTHORS = 5
-_ABSTRACT_FALLBACK_CHARS = 400
+_MAX_AUTHORS = 4
+_ABSTRACT_FALLBACK_CHARS = 320
+_TEASER_CHARS = 125
+# Below this many papers, show full cards for all; past it, split into Spotlight + compact rest.
+_SPOTLIGHT_MIN = 8
+
+# Brand palette + type ("Modern Scientific": warm paper, one electric accent, mono labels).
+_PAPER = "#faf9f5"
+_CARD = "#ffffff"
+_ACCENT = "#0034ff"
+_INK = "#16160f"
+_BODY = "#403f37"
+_MUTED = "#8a897e"
+_RULE = "#e9e8e0"
+_SANS = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif"
+_MONO = "'SFMono-Regular',ui-monospace,Menlo,Consolas,'Liberation Mono',monospace"
 
 
 def _format_authors(paper: Paper) -> str:
@@ -23,19 +40,24 @@ def _format_authors(paper: Paper) -> str:
     return ", ".join(names)
 
 
-def _summary_html(paper: Paper) -> str:
-    """The paper's short summary as a bullet list, falling back to a trimmed abstract."""
+def _summary_text(paper: Paper) -> str:
+    """The paper's short summary as clean prose (falls back to a trimmed abstract).
+
+    ``summary.short`` is prose now, but we defensively collapse any stray bullet markers and
+    newlines so older bullet-style summaries still read as a paragraph.
+    """
     if not paper.summary:
-        abstract = html.escape(paper.abstract[:_ABSTRACT_FALLBACK_CHARS])
-        return f'<p style="font-size:13px;color:#222;line-height:1.5;margin:4px 0;">{abstract}</p>'
-    bullets = [line.strip().lstrip("-*•").strip() for line in paper.summary.short.splitlines()]
-    items = "".join(
-        f'<li style="margin:2px 0;">{html.escape(bullet)}</li>' for bullet in bullets if bullet
-    )
-    return (
-        '<ul style="font-size:13px;color:#222;line-height:1.5;margin:4px 0;padding-left:18px;">'
-        f"{items}</ul>"
-    )
+        return paper.abstract[:_ABSTRACT_FALLBACK_CHARS].strip()
+    lines = [line.strip().lstrip("-*•").strip() for line in paper.summary.short.splitlines()]
+    return " ".join(line for line in lines if line)
+
+
+def _teaser(paper: Paper) -> str:
+    """A one-line teaser for compact entries: the summary, truncated on a word boundary."""
+    text = _summary_text(paper)
+    if len(text) <= _TEASER_CHARS:
+        return text
+    return text[:_TEASER_CHARS].rsplit(" ", 1)[0] + "…"
 
 
 def _matching_topics(paper: Paper, interests: list[str]) -> list[str]:
@@ -54,9 +76,9 @@ def paper_matches_interests(paper: Paper, interests: list[str]) -> bool:
 def _group_sections(papers: list[Paper], interests: list[str]) -> list[tuple[str, list[Paper]]]:
     """Group papers into ``(topic, papers)`` sections, ordered by size then name.
 
-    Each paper appears once, under its primary (first matching) topic — its other topics still
-    show as tags on the paper itself. With ``interests`` set, only those topics get sections (and
-    untagged papers are omitted); with no interests, untagged papers go to an "Other" section.
+    Each paper appears once, under its primary (first matching) topic. With ``interests`` set,
+    only those topics get sections (and untagged papers are omitted); with no interests, untagged
+    papers go to an "Other" section.
     """
     by_topic: dict[str, list[Paper]] = {}
     untagged: list[Paper] = []
@@ -72,66 +94,150 @@ def _group_sections(papers: list[Paper], interests: list[str]) -> list[tuple[str
     return sections
 
 
-def _paper_html(paper: Paper) -> str:
-    """One paper block: linked title, authors, topic tags, short summary."""
-    tags = " ".join(
-        f'<span style="background:#eef;border-radius:4px;padding:1px 6px;'
-        f'font-size:12px;color:#334;">{html.escape(topic)}</span>'
+def _label(text: str, color: str, *, top: int = 0) -> str:
+    """A monospace uppercase section label (the brand's signature treatment)."""
+    return (
+        f'<div style="font-family:{_MONO};font-size:11px;font-weight:700;letter-spacing:1.4px;'
+        f'text-transform:uppercase;color:{color};margin:{top}px 0 4px;">{html.escape(text)}</div>'
+    )
+
+
+def _tags_html(paper: Paper) -> str:
+    """Topic chips for a full card (mono, subtle)."""
+    return "".join(
+        f'<span style="display:inline-block;font-family:{_MONO};font-size:10px;font-weight:700;'
+        f"letter-spacing:0.4px;background:#eef0ff;color:#2f3bb0;border-radius:3px;"
+        f'padding:2px 6px;margin:0 5px 5px 0;">{html.escape(topic)}</span>'
         for topic in paper.topics
     )
-    authors = html.escape(_format_authors(paper))
+
+
+def _full_card(paper: Paper, *, first: bool) -> str:
+    """A full paper card: linked title, authors, prose summary, topic chips + arXiv link."""
+    divider = "" if first else f"border-top:1px solid {_RULE};"
     return (
-        '<div style="margin:0 0 20px;">'
-        f'<a href="{html.escape(paper.entry_id)}" '
-        f'style="font-size:14px;font-weight:600;color:#1a0dab;text-decoration:none;">'
+        f'<div style="padding:20px 0;{divider}">'
+        f'<a href="{html.escape(paper.entry_id)}" style="font-family:{_SANS};font-size:17px;'
+        f'font-weight:700;line-height:1.32;color:{_INK};text-decoration:none;">'
         f"{html.escape(paper.title)}</a>"
-        f'<div style="font-size:12px;color:#555;margin:2px 0;">{authors}</div>'
-        f'<div style="margin:4px 0;">{tags}</div>'
-        f'<div style="font-size:14px;color:#222;line-height:1.5;">{_summary_html(paper)}</div>'
+        f'<div style="font-family:{_SANS};font-size:13px;color:{_MUTED};margin:6px 0 11px;">'
+        f"{html.escape(_format_authors(paper))}</div>"
+        f'<div style="font-family:{_SANS};font-size:14.5px;line-height:1.62;color:{_BODY};'
+        f'margin:0 0 13px;">{html.escape(_summary_text(paper))}</div>'
+        f"<div>{_tags_html(paper)}"
+        f'<a href="{html.escape(paper.entry_id)}" style="font-family:{_MONO};font-size:10px;'
+        f"font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:{_ACCENT};"
+        f'text-decoration:none;white-space:nowrap;">Read on arXiv &rsaquo;</a></div>'
         "</div>"
     )
 
 
-def _section_html(title: str, papers: list[Paper]) -> str:
-    """A topic heading followed by its papers."""
-    body = "".join(_paper_html(paper) for paper in papers)
+def _compact_row(paper: Paper, *, first: bool) -> str:
+    """A compact one-line entry: linked title plus a short teaser."""
+    divider = "" if first else f"border-top:1px solid {_RULE};"
     return (
-        f'<h2 style="font-size:18px;color:#111;border-bottom:1px solid #ddd;'
-        f'padding-bottom:4px;margin:28px 0 16px;">{html.escape(title)}</h2>{body}'
+        f'<div style="padding:11px 0;{divider}">'
+        f'<a href="{html.escape(paper.entry_id)}" style="font-family:{_SANS};font-size:14.5px;'
+        f'font-weight:600;line-height:1.4;color:{_INK};text-decoration:none;">'
+        f"{html.escape(paper.title)}</a>"
+        f'<div style="font-family:{_SANS};font-size:13px;line-height:1.5;color:{_MUTED};'
+        f'margin-top:3px;">{html.escape(_teaser(paper))}</div>'
+        "</div>"
     )
 
 
-def render_digest_html(
+def _full_sections(sections: list[tuple[str, list[Paper]]]) -> str:
+    """Every paper as a full card, grouped under its topic label (small digests)."""
+    return "".join(
+        _label(title, _ACCENT, top=30)
+        + "".join(_full_card(paper, first=i == 0) for i, paper in enumerate(group))
+        for title, group in sections
+    )
+
+
+def _spotlight_and_rest(sections: list[tuple[str, list[Paper]]], spotlight: list[Paper]) -> str:
+    """A Spotlight of full cards, then 'More this week' as compact rows grouped by topic."""
+    spot_ids = {paper.arxiv_id for paper in spotlight}
+    spot_html = _label("Spotlight", _ACCENT, top=28) + "".join(
+        _full_card(paper, first=i == 0) for i, paper in enumerate(spotlight)
+    )
+    rest_groups = []
+    for title, group in sections:
+        remaining = [paper for paper in group if paper.arxiv_id not in spot_ids]
+        if not remaining:
+            continue
+        rows = "".join(_compact_row(paper, first=i == 0) for i, paper in enumerate(remaining))
+        rest_groups.append(_label(title, _MUTED, top=18) + rows)
+    rest_html = (
+        _label("More this week", _ACCENT, top=34) + "".join(rest_groups) if rest_groups else ""
+    )
+    return spot_html + rest_html
+
+
+def render_digest_html(  # noqa: PLR0913 — render entrypoint; keyword-only options, not a god-fn
     heading: str,
     insight: str,
     papers: list[Paper],
     interests: list[str],
     unsubscribe_url: str | None = None,
+    *,
+    highlights: Collection[str] = (),
 ) -> str:
-    """Build the full HTML email: heading, weekly insight, then papers grouped by topic.
+    """Build the full HTML email: header, weekly insight, then the papers.
 
-    ``unsubscribe_url`` (when given) is rendered as a one-click unsubscribe link in the footer.
+    ``highlights`` are the arXiv ids of the standout papers; past ``_SPOTLIGHT_MIN`` papers they
+    become a Spotlight and the rest collapse into a compact index. ``unsubscribe_url`` (when
+    given) is rendered as a one-click unsubscribe link in the footer.
     """
     sections = _group_sections(papers, interests)
+    total = sum(len(group) for _, group in sections)
+    highlight_order = {arxiv_id: i for i, arxiv_id in enumerate(highlights)}
+    spotlight = sorted(
+        (
+            p
+            for p in papers
+            if p.arxiv_id in highlight_order and paper_matches_interests(p, interests)
+        ),
+        key=lambda p: highlight_order[p.arxiv_id],
+    )
+    body = (
+        _spotlight_and_rest(sections, spotlight)
+        if total > _SPOTLIGHT_MIN and spotlight
+        else _full_sections(sections)
+    )
+
     insight_block = (
-        f'<p style="font-size:15px;color:#333;line-height:1.6;background:#f7f7f9;'
-        f'border-left:3px solid #1a0dab;padding:12px 16px;margin:0 0 24px;">'
-        f"{html.escape(insight).replace(chr(10), '<br>')}</p>"
+        f'<div style="border-left:3px solid {_ACCENT};padding:2px 0 2px 16px;margin:20px 0 4px;'
+        f'font-family:{_SANS};font-size:15.5px;line-height:1.6;color:{_INK};">'
+        f"{html.escape(insight).replace(chr(10), '<br>')}</div>"
         if insight
         else ""
     )
-    body = "".join(_section_html(title, group) for title, group in sections)
     unsubscribe_block = (
-        f' <a href="{html.escape(unsubscribe_url)}" style="color:#999;">Unsubscribe</a>.'
+        f' &middot; <a href="{html.escape(unsubscribe_url)}" style="color:{_MUTED};">'
+        "Unsubscribe</a>"
         if unsubscribe_url
         else ""
     )
     return (
-        '<div style="max-width:680px;margin:0 auto;font-family:Helvetica,Arial,sans-serif;">'
-        f'<h1 style="font-size:22px;color:#111;">{html.escape(heading)}</h1>'
-        f"{insight_block}{body}"
-        '<p style="font-size:12px;color:#999;margin-top:32px;">'
-        "You are receiving this because you subscribed to the arXiv ML digest."
-        f"{unsubscribe_block}</p>"
-        "</div>"
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
+        f'style="background:{_PAPER};padding:24px 12px;font-family:{_SANS};">'
+        '<tr><td align="center">'
+        f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
+        f'style="max-width:640px;background:{_CARD};border:1px solid {_RULE};border-radius:12px;">'
+        f'<tr><td style="height:4px;background:{_ACCENT};'
+        'border-radius:12px 12px 0 0;font-size:0;line-height:0;">&nbsp;</td></tr>'
+        '<tr><td style="padding:26px 34px 0;">'
+        f'<div style="font-family:{_MONO};font-size:11px;font-weight:700;letter-spacing:1.6px;'
+        f'text-transform:uppercase;color:{_ACCENT};">arXiv ML Digest</div>'
+        f'<h1 style="font-family:{_SANS};font-size:24px;font-weight:800;line-height:1.2;'
+        f'color:{_INK};margin:8px 0 0;">{html.escape(heading)}</h1>'
+        f"{insight_block}"
+        "</td></tr>"
+        f'<tr><td style="padding:0 34px 10px;">{body}</td></tr>'
+        f'<tr><td style="padding:22px 34px 28px;border-top:1px solid {_RULE};'
+        f'font-family:{_MONO};font-size:11px;line-height:1.7;color:{_MUTED};">'
+        "You are receiving this because you subscribed to the arXiv ML Digest."
+        f"{unsubscribe_block}</td></tr>"
+        "</table></td></tr></table>"
     )
