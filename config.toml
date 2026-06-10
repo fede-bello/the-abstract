@@ -55,14 +55,6 @@ parse_cost_per_page_usd = { fast = 0.001, cost_effective = 0.003, agentic = 0.00
 workflow_timeout_seconds = 86400   # Max seconds per run.
 log_level = "INFO"                 # DEBUG | INFO | WARNING | ERROR | CRITICAL
 
-# --- Embeddings (local HuggingFace model for RAG) ---
-# embedding_dim MUST match the model and the vector(N) column in the DB migration.
-embedding_model = "BAAI/bge-small-en-v1.5"
-embedding_dim = 384
-embedding_device = "cpu"   # "cpu", "cuda", or "mps" (Apple Silicon)
-chunk_size = 512           # tokens per chunk
-chunk_overlap = 64         # token overlap between chunks
-
 # --- Email digest (SMTP) ---
 # Defaults target Gmail (use a Gmail App Password as SMTP_PASSWORD). Point host/port at any
 # provider (Resend/Mailgun/SES SMTP, ...) to switch — no code change. Credentials live in .env.
