@@ -124,6 +124,9 @@ class Settings(BaseSettings):
     # Supabase project URL (e.g. https://<ref>.supabase.co), used to build the unsubscribe link
     # in each digest (it points at the `unsubscribe` Edge Function). Blank = no link rendered.
     supabase_url: str = Field(default="")
+    # Public site URL (e.g. https://the-abstract.vercel.app). Digest paper titles link to the
+    # paper's page on the site (/paper/<arxiv_id>); blank falls back to linking to arXiv.
+    site_url: str = Field(default="")
 
     # --- Storage ---
     data_dir: Path = Field(default=Path("data"))
