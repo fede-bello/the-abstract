@@ -28,9 +28,31 @@ def test_includes_heading_insight_and_paper_link():
 
 
 def test_omits_insight_block_when_insight_is_empty():
-    html = render_digest_html("Weekly Digest", "", [_paper("A Paper", ["LLMs"])], [])
+    with_insight = render_digest_html("D", "the weekly theme line", [_paper("A", ["LLMs"])], [])
+    without = render_digest_html("D", "", [_paper("A", ["LLMs"])], [])
 
-    assert "border-left:3px solid" not in html
+    assert "the weekly theme line" in with_insight
+    assert "the weekly theme line" not in without
+
+
+def test_spotlight_and_compact_index_for_many_papers():
+    papers = [_paper(f"Paper {i}", ["LLMs"], arxiv_id=f"id{i}") for i in range(10)]
+
+    html = render_digest_html("Digest", "", papers, [], highlights=["id0", "id1"])
+
+    assert "Spotlight" in html
+    assert "More this week" in html
+    assert "Paper 0" in html  # spotlighted (full card)
+    assert "Paper 9" in html  # compact index
+
+
+def test_full_cards_below_spotlight_threshold():
+    papers = [_paper(f"Paper {i}", ["LLMs"], arxiv_id=f"id{i}") for i in range(3)]
+
+    html = render_digest_html("Digest", "", papers, [], highlights=["id0"])
+
+    assert "Spotlight" not in html
+    assert "Paper 2" in html
 
 
 def test_renders_unsubscribe_link_when_url_given():
@@ -81,18 +103,18 @@ def test_untagged_paper_omitted_when_interests_set():
     assert "Other notable papers" not in html
 
 
-def test_short_summary_renders_as_bullet_list():
+def test_short_summary_renders_as_prose_paragraph():
+    # `short` is prose now; any stray bullet markers collapse into one clean paragraph.
     paper = make_paper(
-        title="Bulleted",
+        title="Prosey",
         topics=["LLMs"],
         summary=Summary(short="- First point.\n- Second point.", long="l", conclusions="c"),
     )
 
     html = render_digest_html("Digest", "", [paper], [])
 
-    assert "<li" in html
-    assert "First point." in html
-    assert "Second point." in html
+    assert "<li" not in html
+    assert "First point. Second point." in html
     assert "- First point." not in html
 
 

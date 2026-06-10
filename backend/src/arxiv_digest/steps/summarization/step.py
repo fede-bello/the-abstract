@@ -10,18 +10,20 @@ from arxiv_digest.clients.llm import complete_structured
 from arxiv_digest.config import settings
 
 _SYSTEM_PROMPT = (
-    "You summarize a machine-learning paper for a weekly research digest. Write three "
-    "parts: `short` — 2 to 3 bullet points for quick scanning, each ONE short sentence of at "
-    "most 20 words, plain and punchy, no parenthetical asides, no equations, at most one "
-    "number per bullet (one bullet per line, prefixed with '- '); `long` — about two "
-    "paragraphs covering methodology, results, and implications; `conclusions` — a brief note "
-    "on the paper's significance and impact. Be faithful to the paper; never invent results."
+    "You summarize a machine-learning paper for a weekly research digest. Write three parts. "
+    "`short`: 2 to 3 short sentences of flowing prose (about 40 to 60 words total) that a busy "
+    "researcher can read at a glance, telling them what the paper does and why it matters. "
+    "`long`: about two paragraphs covering methodology, results, and implications. "
+    "`conclusions`: a brief note on the paper's significance and impact. "
+    "Write in plain, natural English. Do NOT use em dashes or en dashes anywhere; use commas, "
+    "periods, or parentheses instead. No bullet points, no markdown, no equations. Be faithful "
+    "to the paper and never invent results."
 )
 
 
 def _format_input(paper: Paper) -> str:
     """Render the paper for the summarizer: metadata plus the parsed body to summarize."""
-    authors = ", ".join(a.name for a in paper.authors) or "—"
+    authors = ", ".join(a.name for a in paper.authors) or "Unknown"
     return (
         f"Title: {paper.title}\n"
         f"Authors: {authors}\n"

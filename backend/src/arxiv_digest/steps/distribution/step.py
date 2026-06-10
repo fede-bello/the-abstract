@@ -8,7 +8,7 @@ means all topics). External I/O lives in the clients; this orchestrates them.
 import logging
 from datetime import UTC, datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from arxiv_digest.clients.arxiv import Paper
 from arxiv_digest.clients.db import get_active_subscribers
@@ -20,31 +20,35 @@ from arxiv_digest.steps.distribution.render import paper_matches_interests, rend
 logger = logging.getLogger(__name__)
 
 _INSIGHT_SYSTEM_PROMPT = (
-    "You write the one-line opener for a weekly machine-learning research digest. Given this "
-    "week's papers, write ONE or TWO punchy sentences naming the week's main theme or standout "
-    "result — the single thing a busy researcher should take away. No lists, no greeting, no "
-    "sign-off; just the sentence(s)."
+    "You write the opener for a weekly machine-learning research digest. Each input line starts "
+    "with the paper's [id]. Do two things. In `paragraph`, write ONE or TWO natural sentences "
+    "naming the week's main theme or standout result, the single thing a busy researcher should "
+    "take away. In `highlights`, list the ids of the 4 to 5 most notable papers, most important "
+    "first, copying each bracketed [id] value exactly. No lists or markdown in the paragraph, no "
+    "greeting, no sign-off. Do NOT use em dashes or en dashes anywhere; use commas, periods, or "
+    "parentheses instead."
 )
 
 
 class WeeklyInsight(BaseModel):
-    """The one-paragraph overview that opens the digest."""
+    """The digest opener plus the ids of the week's standout (spotlight) papers."""
 
     paragraph: str
+    highlights: list[str] = Field(default_factory=list)
 
 
 def _format_week(papers: list[Paper]) -> str:
-    """Render the week's papers as bullet lines for the insight prompt."""
+    """Render the week's papers as id-tagged lines for the insight + highlight prompt."""
     lines = []
     for paper in papers:
-        topics = ", ".join(paper.topics) or "—"
+        topics = ", ".join(paper.topics) or "none"
         gist = paper.summary.short if paper.summary else paper.abstract
-        lines.append(f"- {paper.title} [{topics}]: {gist}")
+        lines.append(f"- [{paper.arxiv_id}] {paper.title} ({topics}): {gist}")
     return "\n".join(lines)
 
 
-async def _summarize_week(papers: list[Paper]) -> str:
-    """Generate the shared weekly insight paragraph; empty string if the LLM call fails."""
+async def _summarize_week(papers: list[Paper]) -> tuple[str, list[str]]:
+    """Return the weekly insight paragraph and the standout-paper ids; ``("", [])`` on failure."""
     try:
         insight = await complete_structured(
             _INSIGHT_SYSTEM_PROMPT,
@@ -56,8 +60,8 @@ async def _summarize_week(papers: list[Paper]) -> str:
         )
     except Exception:  # noqa: BLE001 — best-effort; the digest still sends without the insight
         logger.warning("weekly insight failed; sending digest without it", exc_info=True)
-        return ""
-    return insight.paragraph
+        return "", []
+    return insight.paragraph, insight.highlights
 
 
 def _papers_for(papers: list[Paper], interests: list[str]) -> list[Paper]:
@@ -69,9 +73,15 @@ def _papers_for(papers: list[Paper], interests: list[str]) -> list[Paper]:
 
 
 def _digest_title() -> str:
-    """Subject line and body heading for this run's digest."""
+    """The email subject line for this run's digest."""
     today = datetime.now(UTC).date()
-    return f"arXiv ML Digest — week of {today:%Y-%m-%d}"
+    return f"arXiv ML Digest: week of {today:%Y-%m-%d}"
+
+
+def _digest_heading() -> str:
+    """The in-body heading (the template prints the 'arXiv ML Digest' wordmark above it)."""
+    today = datetime.now(UTC).date()
+    return f"Week of {today:%B} {today.day}, {today:%Y}"
 
 
 def _unsubscribe_url(token: str) -> str | None:
@@ -90,15 +100,18 @@ async def send_digest(papers: list[Paper]) -> None:
         logger.info("no active subscribers; skipping digest")
         return
 
-    insight = await _summarize_week(papers)
-    title = _digest_title()
+    insight, highlights = await _summarize_week(papers)
+    subject = _digest_title()
+    heading = _digest_heading()
     for subscriber in subscribers:
         selected = _papers_for(papers, subscriber.interests)
         if not selected:
             continue
         unsubscribe_url = _unsubscribe_url(subscriber.unsubscribe_token)
-        body = render_digest_html(title, insight, selected, subscriber.interests, unsubscribe_url)
+        body = render_digest_html(
+            heading, insight, selected, subscriber.interests, unsubscribe_url, highlights=highlights
+        )
         try:
-            await send_email(to=subscriber.email, subject=title, html=body)
+            await send_email(to=subscriber.email, subject=subject, html=body)
         except EmailError:
             logger.warning("failed to email %s; continuing", subscriber.email, exc_info=True)
