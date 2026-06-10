@@ -1,7 +1,7 @@
 [project]
 name = "arxiv-digest"
 version = "0.1.0"
-description = "Weekly AI-curated digests of machine-learning papers from arXiv, with a RAG-powered Q&A app."
+description = "Weekly, AI-curated email digests of new machine-learning papers from arXiv."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -33,6 +33,10 @@ dependencies = [
     "claude-agent-sdk>=0.1",
     "litellm>=1.50",
 ]
+
+[project.urls]
+Homepage = "https://the-abstract.vercel.app"
+Repository = "https://github.com/fede-bello/the-abstract"
 
 [project.optional-dependencies]
 dev = [
