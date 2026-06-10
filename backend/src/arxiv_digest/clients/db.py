@@ -1,16 +1,15 @@
-"""Database client: persist papers and their embedded chunks to Postgres/pgvector.
+"""Database client: persist papers to Postgres.
 
 Hand-rolled async SQL over ``asyncpg`` with parameterized queries only. A lazily-built
-connection pool registers the pgvector codec (so ``list[float]`` maps to ``vector``) and a
-jsonb codec (so author lists serialize directly). Writes go through the table-owner role,
-which bypasses RLS; the schema itself lives in ``supabase/migrations/``.
+connection pool registers a jsonb codec (so author lists serialize directly). Writes go
+through the table-owner role, which bypasses RLS; the schema itself lives in
+``supabase/migrations/``.
 """
 
 import json
 from datetime import datetime
 
 import asyncpg
-from pgvector.asyncpg import register_vector
 from pydantic import BaseModel
 
 from arxiv_digest.clients.arxiv import Paper
@@ -45,10 +44,6 @@ _UPSERT_PAPER_SQL = (
     # S608: interpolates only the fixed _PAPER_COLUMNS constant — no user input.
     f"insert into papers ({', '.join(_PAPER_COLUMNS)}) values ({_PLACEHOLDERS}) "  # noqa: S608
     f"on conflict (arxiv_id) do update set {_UPDATE_SET}"
-)
-_DELETE_CHUNKS_SQL = "delete from paper_chunks where arxiv_id = $1"
-_INSERT_CHUNK_SQL = (
-    "insert into paper_chunks (arxiv_id, chunk_index, content, embedding) values ($1, $2, $3, $4)"
 )
 _SELECT_ACTIVE_SUBSCRIBERS_SQL = (
     "select email, interests, unsubscribe_token from subscribers where is_active = true"
@@ -122,8 +117,7 @@ class DBError(RuntimeError):
 
 
 async def _init_connection(conn: asyncpg.Connection) -> None:
-    """Register pgvector + jsonb codecs so vectors and author lists pass through natively."""
-    await register_vector(conn)
+    """Register the jsonb codec so author lists pass through natively."""
     await conn.set_type_codec("jsonb", encoder=json.dumps, decoder=json.loads, schema="pg_catalog")
 
 
@@ -173,25 +167,16 @@ def _paper_values(paper: Paper) -> tuple[object, ...]:
     )
 
 
-async def store_papers(
-    papers: list[Paper], chunks: dict[str, list[tuple[str, list[float]]]]
-) -> None:
-    """Upsert each paper and replace its chunks, one transaction per paper (idempotent)."""
+async def store_papers(papers: list[Paper]) -> None:
+    """Upsert each paper, one transaction per paper (idempotent)."""
     if not papers:
         return
     pool = await _get_pool()
     async with pool.acquire() as conn:
         for paper in papers:
-            paper_chunks = chunks.get(paper.arxiv_id, [])
-            chunk_rows = [
-                (paper.arxiv_id, index, content, embedding)
-                for index, (content, embedding) in enumerate(paper_chunks)
-            ]
             try:
                 async with conn.transaction():
                     await conn.execute(_UPSERT_PAPER_SQL, *_paper_values(paper))
-                    await conn.execute(_DELETE_CHUNKS_SQL, paper.arxiv_id)
-                    await conn.executemany(_INSERT_CHUNK_SQL, chunk_rows)
             except asyncpg.PostgresError as exc:
                 msg = f"failed to store {paper.arxiv_id}: {exc}"
                 raise DBError(msg) from exc

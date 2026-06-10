@@ -158,7 +158,7 @@ class DigestWorkflow(Workflow):
 
     @step
     async def store(self, ev: CategorizedEvent) -> StoredEvent:
-        """Persist papers, summaries, and embeddings."""
+        """Persist papers and summaries."""
         papers = await store_papers(ev.papers)
         return StoredEvent(papers=papers)
 

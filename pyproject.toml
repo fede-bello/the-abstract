@@ -15,11 +15,8 @@ dependencies = [
     # LlamaParse v2 — PDF → markdown via the cost-effective tier (the v2 `llama-cloud`
     # SDK; the classic `llama-cloud-services` pins llama-cloud<0.2 and can't coexist).
     "llama-cloud>=2.1",
-    # Storage / vector search (Supabase Postgres + pgvector) — hand-rolled async SQL
+    # Storage (Supabase Postgres) — hand-rolled async SQL
     "asyncpg>=0.30",
-    "pgvector>=0.4",
-    # Local embeddings for RAG: BAAI/bge-small-en-v1.5 (384-dim) via HuggingFace (pulls torch)
-    "llama-index-embeddings-huggingface>=0.3",
     # Email digest delivery (async SMTP)
     "aiosmtplib>=3.0",
     # Core
@@ -125,7 +122,6 @@ module = [
     "claude_agent_sdk.*",
     "asyncpg",
     "asyncpg.*",
-    "pgvector.*",
 ]
 ignore_missing_imports = true
 
@@ -136,5 +132,5 @@ testpaths = ["backend/tests"]
 addopts = "--import-mode=importlib"
 asyncio_mode = "auto"
 markers = [
-    "integration: tests that call a real external backend (LLM, database, or embedding model)",
+    "integration: tests that call a real external backend (LLM or database)",
 ]

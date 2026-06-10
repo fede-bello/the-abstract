@@ -31,28 +31,23 @@ async def _fresh_db_pool():
 
 
 @pytest.mark.integration
-async def test_store_papers_writes_paper_and_chunks():
+async def test_store_papers_writes_paper():
     dsn = settings.supabase_db_url.get_secret_value()
     if not dsn:
         pytest.skip("SUPABASE_DB_URL not set")
 
     paper = make_paper(arxiv_id=_TEST_ARXIV_ID, full_text="body")
-    chunks = {_TEST_ARXIV_ID: [("a chunk", [0.1] * settings.embedding_dim)]}
 
     try:
-        await store_papers([paper], chunks)
+        await store_papers([paper])
         conn = await asyncpg.connect(dsn=dsn)
         try:
             n_papers = await conn.fetchval(
                 "select count(*) from papers where arxiv_id = $1", _TEST_ARXIV_ID
             )
-            n_chunks = await conn.fetchval(
-                "select count(*) from paper_chunks where arxiv_id = $1", _TEST_ARXIV_ID
-            )
         finally:
             await conn.close()
         assert n_papers == 1
-        assert n_chunks == 1
     finally:
         conn = await asyncpg.connect(dsn=dsn)
         await conn.execute("delete from papers where arxiv_id = $1", _TEST_ARXIV_ID)
