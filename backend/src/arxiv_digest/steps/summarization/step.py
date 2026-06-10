@@ -13,6 +13,8 @@ _SYSTEM_PROMPT = (
     "You summarize a machine-learning paper for a weekly research digest. Write three parts. "
     "`short`: 2 to 3 short sentences of flowing prose (about 40 to 60 words total) that a busy "
     "researcher can read at a glance, telling them what the paper does and why it matters. "
+    "Keep the language simple and plain: prefer everyday words over jargon, and when a technical "
+    "term is unavoidable, phrase it so a non-specialist can still follow. "
     "`long`: about two paragraphs covering methodology, results, and implications. "
     "`conclusions`: a brief note on the paper's significance and impact. "
     "Write in plain, natural English. Do NOT use em dashes or en dashes anywhere; use commas, "
