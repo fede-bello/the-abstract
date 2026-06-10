@@ -1,10 +1,10 @@
 # the-abstract
 
-> Weekly, AI-curated digests of the machine-learning papers worth your attention — plus a searchable Q&A app over everything it has ever read.
+> Weekly, AI-curated digests of the machine-learning papers worth your attention.
 
-**the-abstract** is an open-source pipeline that ingests new ML papers from arXiv each week, filters out the noise with an LLM, fully parses and summarizes the useful ones, stores them with embeddings, and emails subscribers a personalized HTML digest. Every paper it has ever processed stays queryable through a RAG-powered web app.
+**the-abstract** is an open-source pipeline that ingests new ML papers from arXiv each week, filters out the noise with an LLM, fully parses and summarizes the useful ones, stores them with embeddings, and emails subscribers a personalized HTML digest. A lightweight web app lets anyone browse everything it has processed, by week and by topic.
 
-> **Status:** early development. The product spec is in [`objective.md`](./objective.md); the architecture is settled and scaffolding is in progress.
+> **Status:** the weekly pipeline runs in production via a GitHub Actions cron and emails subscribers; the web app browses the results. A RAG-powered Q&A layer over the corpus is on the roadmap — see [`objective.md`](./objective.md) for the full product spec.
 
 ## How it works
 
@@ -22,28 +22,28 @@ summarize ──→ short + long + takeaways
 store ──→ Postgres + pgvector (embeddings)
         ↓
    ┌──────────────────────┬─────────────────────────┐
-weekly HTML email       Q&A web app (RAG)
-(personalized)          search · filter · ask
+weekly HTML email        web app
+(personalized)           browse · archive · topics
 ```
 
 Two stages of cost control: a cheap metadata classifier gates the expensive parse/summarize work, so only papers worth reading get the full treatment.
 
 ## Architecture
 
-A monorepo built around **LlamaIndex Workflows** — everything that does work is a *step*, everything a step reaches for is a *client*.
+A monorepo built around **LlamaIndex Workflows** — everything that does work is a *step*, everything a step reaches for is a *client*. There is no API server.
 
 ```
-backend/                     # Python: LlamaIndex Workflows + FastAPI
+backend/                     # Python: the weekly LlamaIndex Workflows pipeline
   src/arxiv_digest/
-    workflows/   # ingest.py (weekly batch) · qa.py (on-demand RAG)
+    workflows/   # digest.py — the explicit pipeline: every @step method, in order
     steps/       # one self-contained folder per pipeline stage
     clients/     # arXiv, LLM, DB, LlamaParse — all external I/O
-    api/         # FastAPI — thin layer the frontend talks to
     config.py
-frontend/                    # Vite + React SPA
+frontend/                    # Vite + React SPA — reads Supabase directly via the anon key
+supabase/                    # migrations + double-opt-in Edge Functions (subscribe/confirm/unsubscribe)
 ```
 
-The weekly pipeline and the API are two entry points into the same package, sharing the database. See [`CLAUDE.md`](./CLAUDE.md) for the architecture rules.
+The backend is purely the weekly pipeline: it writes to Supabase, and the SPA reads it directly via the anon key + row-level security (papers are public arXiv-derived data). The whole thing hosts on Vercel (static SPA) + Supabase (DB) for free. See [`CLAUDE.md`](./CLAUDE.md) for the architecture rules.
 
 ## Tech stack
 
@@ -51,24 +51,24 @@ The weekly pipeline and the API are two entry points into the same package, shar
 |---|---|
 | Orchestration | [LlamaIndex Workflows](https://developers.llamaindex.ai/python/llamaagents/workflows/) |
 | Parsing | LlamaParse (LlamaCloud) |
-| LLM / embeddings | Configurable provider |
+| LLM / embeddings | Configurable provider (Claude subscription by default) |
 | Database | Supabase / Postgres + pgvector |
-| API | FastAPI |
+| Newsletter | Supabase Edge Functions (Deno) |
 | Frontend | Vite + React (TypeScript) |
 | Python tooling | uv · ruff · mypy |
 
 ## Getting started
 
-> Setup is still being scaffolded. The intended flow:
+Prerequisites: [`uv`](https://docs.astral.sh/uv/), Node, and accounts for Supabase, LlamaCloud, and an SMTP sender — plus a Claude subscription (default) or an LLM API key.
 
 ```bash
 git clone git@github.com:fede-bello/the-abstract.git
 cd the-abstract
 
 # backend — the weekly pipeline
-cp .env.example .env        # add your API keys (arXiv, LLM, LlamaCloud, DB)
+cp .env.example .env        # add your secrets (LLM, LlamaCloud, Supabase DB, SMTP)
 uv sync
-uv run arxiv-digest ingest  # run the weekly pipeline once to populate the DB
+uv run arxiv-digest ingest  # run the weekly pipeline once to populate the DB (and email the digest)
 
 # frontend — reads Supabase directly via the anon key (no API server needed to browse)
 cd frontend
@@ -76,11 +76,11 @@ cp .env.example .env        # set VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY
 npm install && npm run dev
 ```
 
-The frontend reads papers, weekly issues, and facets straight from Supabase — the `papers` table's row-level security allows read-only public access to this public arXiv-derived data. There is no API server: the backend is just the weekly pipeline, so the whole app hosts on Vercel (static SPA) + Supabase (DB), free.
+The frontend reads papers, weekly issues, and facets straight from Supabase — the `papers` table's row-level security allows read-only public access to this public arXiv-derived data.
 
 The frontend shows empty states until `arxiv-digest ingest` has populated the database; after a run, papers appear across This week / Browse / Archive / paper detail.
 
-Configuration — arXiv categories, the topic-tag list, schedule day, model names — lives in `config.py` / environment variables so you can adapt it without touching code.
+Configuration — arXiv categories, the topic-tag list, model names, the public site URL — lives in [`config.toml`](./config.toml) (non-secret) and environment variables (secrets), so you can adapt it without touching code. The schedule lives in the GitHub Actions workflow below.
 
 ### Weekly automation & email signup
 
@@ -101,8 +101,13 @@ Apply migrations `0001`–`0006` to your Supabase project. Emails stay private �
 
 ## Contributing
 
-Contributions welcome once the initial scaffold lands. Conventional-commit messages, `ruff`/`mypy` clean, and a green type-check on any frontend change.
+Contributions welcome. Conventional-commit messages (no scope parens, no `Co-Authored-By` trailer), `ruff`/`mypy` clean on the backend, and a green type-check on any frontend change:
+
+```bash
+uv run ruff check backend && uv run mypy backend   # backend
+npm --prefix frontend run typecheck                # frontend
+```
 
 ## License
 
-TBD — a `LICENSE` file will be added before the first release (likely MIT or Apache-2.0).
+Released under the [MIT License](./LICENSE).
