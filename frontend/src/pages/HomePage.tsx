@@ -4,6 +4,7 @@ import { ErrorState } from '@/components/common/ErrorState';
 import { Skeleton } from '@/components/common/Skeleton';
 import { EmptyState } from '@/components/common/EmptyState';
 import { WeekIssue } from '@/components/digest/WeekIssue';
+import { SubscribeForm } from '@/components/layout/SubscribeForm';
 import { useLatestWeek } from '@/hooks/usePapers';
 import { ROUTES } from '@/lib/constants';
 import styles from './HomePage.module.css';
@@ -17,6 +18,18 @@ export default function HomePage() {
 
   return (
     <div className={styles.page}>
+      <section className={styles.subscribe}>
+        <div className={styles.subscribeCopy}>
+          <p className={styles.subscribeKicker}>Weekly newsletter</p>
+          <h2 className={styles.subscribeHeading}>The week in ML, in your inbox.</h2>
+          <p className={styles.subscribeText}>
+            One email every Monday — the arXiv papers worth your attention, summarized. Free, no
+            spam, unsubscribe anytime.
+          </p>
+        </div>
+        <SubscribeForm />
+      </section>
+
       <WeekIssue issue={data} kicker="This week" />
 
       <nav className={styles.cta}>
