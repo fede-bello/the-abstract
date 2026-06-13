@@ -8,15 +8,13 @@ type Status = 'idle' | 'submitting' | 'confirmation-sent' | 'already-subscribed'
 // A client-side guard for quick feedback; the Edge Function validates again server-side.
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
-const MESSAGES: Record<Exclude<Status, 'idle' | 'submitting'>, string> = {
-  'confirmation-sent': 'Almost there — check your inbox to confirm.',
-  'already-subscribed': 'You’re already on the list.',
-  error: 'Something went wrong — please try again.',
-};
-
-/** Footer newsletter signup. Inserts the email straight into Supabase via the anon key. */
+/** Newsletter signup, used in the footer and the home hero. Calls the `subscribe` Edge Function,
+ *  which records a pending row and emails a double opt-in confirmation link — nothing arrives
+ *  until the recipient clicks it. */
 export function SubscribeForm() {
   const [email, setEmail] = useState('');
+  // Remembered after submit so the success panel can name the address we mailed.
+  const [submittedEmail, setSubmittedEmail] = useState('');
   const [status, setStatus] = useState<Status>('idle');
 
   async function handleSubmit(event: FormEvent) {
@@ -28,6 +26,7 @@ export function SubscribeForm() {
     setStatus('submitting');
     try {
       const result = await getClient().subscribe(email);
+      setSubmittedEmail(email);
       setStatus(result);
       setEmail('');
     } catch {
@@ -35,7 +34,33 @@ export function SubscribeForm() {
     }
   }
 
-  const showMessage = status !== 'idle' && status !== 'submitting';
+  // On success, swap the input row for a prominent panel — the whole point of double opt-in is
+  // that the user MUST go check their email, so we make that the loud, unmissable next step.
+  if (status === 'confirmation-sent' || status === 'already-subscribed') {
+    const sent = status === 'confirmation-sent';
+    return (
+      <div className={styles.success} role="status" aria-live="polite">
+        <span className={styles.successIcon} aria-hidden="true">
+          {sent ? '✉' : '✓'}
+        </span>
+        <div>
+          <p className={styles.successTitle}>{sent ? 'Check your inbox' : 'Already subscribed'}</p>
+          <p className={styles.successText}>
+            {sent ? (
+              <>
+                We just emailed a confirmation link to <strong>{submittedEmail}</strong>. Click it
+                to start receiving the weekly digest — it won’t arrive until you do.
+              </>
+            ) : (
+              <>
+                <strong>{submittedEmail}</strong> is already confirmed for the weekly digest.
+              </>
+            )}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form className={styles.form} onSubmit={handleSubmit} noValidate>
@@ -66,7 +91,7 @@ export function SubscribeForm() {
         </button>
       </div>
       <p className={styles.status} aria-live="polite" data-tone={status === 'error' ? 'error' : 'ok'}>
-        {showMessage ? MESSAGES[status] : ' '}
+        {status === 'error' ? 'Something went wrong — please try again.' : ' '}
       </p>
     </form>
   );

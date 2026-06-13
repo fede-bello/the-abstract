@@ -65,3 +65,44 @@
 .status[data-tone='error'] {
   color: var(--accent);
 }
+
+/* Post-submit confirmation panel — replaces the input row so "go check your email" can't be
+   missed. Lives on inverted (footer/hero) surfaces, so it uses the invert + accent tokens. */
+.success {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s3);
+  min-width: min(100%, 22rem);
+}
+
+.successIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 1.1rem;
+}
+
+.successTitle {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-h3);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--lh-snug);
+  color: var(--invert-fg);
+  margin: 0 0 var(--s1);
+}
+
+.successText {
+  font-size: var(--fs-small);
+  line-height: 1.5;
+  color: var(--invert-muted);
+  margin: 0;
+}
+.successText strong {
+  color: var(--invert-fg);
+  font-weight: 600;
+}

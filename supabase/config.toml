@@ -1,0 +1,19 @@
+# Supabase project config. Only the bits this project relies on are pinned here; everything else
+# uses CLI defaults. The key settings are the per-function `verify_jwt` flags below.
+project_id = "the-abstract"
+
+# `subscribe` is called from the browser via supabase-js, which sends the anon-key JWT — so JWT
+# verification stays on.
+[functions.subscribe]
+enabled = true
+verify_jwt = true
+
+# `confirm` and `unsubscribe` are opened directly from links in confirmation/digest emails: a plain
+# browser GET with no Authorization header. JWT verification must be OFF or those links 401.
+[functions.confirm]
+enabled = true
+verify_jwt = false
+
+[functions.unsubscribe]
+enabled = true
+verify_jwt = false
