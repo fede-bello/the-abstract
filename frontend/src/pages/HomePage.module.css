@@ -2,52 +2,6 @@
   padding-bottom: var(--s6);
 }
 
-/* Landing-page newsletter band: a dark, full-bleed-feeling panel above this week's issue so the
-   signup is the first thing visitors meet. Inverted surface (matches the footer) so the
-   SubscribeForm's --invert-* styling reads correctly here too. */
-.subscribe {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--s5) var(--s7);
-  background: var(--invert-bg);
-  color: var(--invert-fg);
-  padding: var(--s6) var(--s6);
-  margin-bottom: var(--s7);
-}
-
-.subscribeCopy {
-  flex: 1 1 22rem;
-}
-
-.subscribeKicker {
-  font-family: var(--font-mono);
-  font-size: var(--fs-meta);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-  color: var(--accent);
-  margin: 0 0 var(--s2);
-}
-
-.subscribeHeading {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: var(--fs-h2);
-  letter-spacing: var(--tracking-tight);
-  line-height: var(--lh-snug);
-  color: var(--invert-fg);
-  margin: 0 0 var(--s3);
-}
-
-.subscribeText {
-  font-size: var(--fs-small);
-  line-height: var(--lh-body);
-  color: var(--invert-muted);
-  max-width: 42ch;
-  margin: 0;
-}
-
 .cta {
   display: flex;
   flex-wrap: wrap;
