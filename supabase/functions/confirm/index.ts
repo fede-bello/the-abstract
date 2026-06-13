@@ -1,12 +1,13 @@
 // GET ?token=<confirm_token> — confirm a pending subscription (opened from the email link).
-// Deploy with --no-verify-jwt: it's visited directly from an email, with no auth header.
+// Deploy with --no-verify-jwt: it's visited directly from an email, with no auth header. Redirects
+// to the SPA's /subscription page for the user-facing result (see _shared/redirect.ts).
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-import { htmlPage } from '../_shared/page.ts';
+import { statusRedirect } from '../_shared/redirect.ts';
 
 Deno.serve(async (req) => {
   const token = new URL(req.url).searchParams.get('token');
-  if (!token) return htmlPage('Invalid link', 'This confirmation link is missing its token.', 400);
+  if (!token) return statusRedirect('invalid');
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
@@ -21,7 +22,7 @@ Deno.serve(async (req) => {
     .is('confirmed_at', null)
     .select('email')
     .maybeSingle();
-  if (error) return htmlPage('Something went wrong', 'Please try the link again later.', 500);
+  if (error) return statusRedirect('error');
 
   // No row updated: either the token is bogus, or it was already confirmed. Confirm the latter.
   if (!data) {
@@ -30,9 +31,9 @@ Deno.serve(async (req) => {
       .select('email')
       .eq('confirm_token', token)
       .maybeSingle();
-    if (!existing) return htmlPage('Invalid link', 'This confirmation link is not valid.', 404);
-    return htmlPage("You're already confirmed", 'You are on the list for the weekly digest.');
+    if (!existing) return statusRedirect('invalid');
+    return statusRedirect('already-confirmed');
   }
 
-  return htmlPage("You're subscribed", 'Thanks for confirming — the next digest lands Monday.');
+  return statusRedirect('confirmed');
 });
