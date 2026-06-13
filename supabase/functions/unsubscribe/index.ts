@@ -1,12 +1,13 @@
 // GET ?token=<unsubscribe_token> — remove a subscriber from the list (link in every digest).
-// Deploy with --no-verify-jwt: it's visited directly from an email, with no auth header.
+// Deploy with --no-verify-jwt: it's visited directly from an email, with no auth header. Redirects
+// to the SPA's /subscription page for the user-facing result (see _shared/redirect.ts).
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-import { htmlPage } from '../_shared/page.ts';
+import { statusRedirect } from '../_shared/redirect.ts';
 
 Deno.serve(async (req) => {
   const token = new URL(req.url).searchParams.get('token');
-  if (!token) return htmlPage('Invalid link', 'This unsubscribe link is missing its token.', 400);
+  if (!token) return statusRedirect('invalid');
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
@@ -20,8 +21,8 @@ Deno.serve(async (req) => {
     .eq('unsubscribe_token', token)
     .select('email')
     .maybeSingle();
-  if (error) return htmlPage('Something went wrong', 'Please try the link again later.', 500);
-  if (!data) return htmlPage('Invalid link', 'This unsubscribe link is not valid.', 404);
+  if (error) return statusRedirect('error');
+  if (!data) return statusRedirect('invalid');
 
-  return htmlPage('Unsubscribed', "You won't receive the digest anymore. Re-subscribe anytime from the site.");
+  return statusRedirect('unsubscribed');
 });
