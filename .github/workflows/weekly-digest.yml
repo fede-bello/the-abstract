@@ -5,8 +5,8 @@ name: Weekly digest
 # `arxiv-digest ingest` does all of that in one command (the email is the pipeline's last step).
 on:
   schedule:
-    - cron: "37 11 * * 1" # Mondays 11:37 UTC (08:37 UTC-03). Off the top of the hour to avoid GitHub's scheduled-run contention; cron is UTC and may still lag a few minutes.
-    - cron: "37 15 * * 1"
+    - cron: "40 3 * * 1" # Mondays 03:40 UTC (00:40 UTC-03). Early so the run still finishes before 07:00 UTC-03 even when GitHub's scheduler lags by hours; off the top of the hour to dodge contention.
+    - cron: "40 7 * * 1"
   workflow_dispatch: {} # allow manual runs from the Actions tab
 
 concurrency:
