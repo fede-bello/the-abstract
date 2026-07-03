@@ -106,20 +106,18 @@ async def test_record_litellm_usage_swallows_db_error(monkeypatch, caplog):
     assert "failed to record LLM usage" in caplog.text
 
 
-async def test_record_parse_usage_records_estimated_cost(monkeypatch, captured_events):
+async def test_record_parse_usage_records_pages(monkeypatch, captured_events):
     monkeypatch.setattr(settings, "supabase_db_url", _DB_URL)
-    monkeypatch.setattr(settings, "parse_cost_per_page_usd", {"cost_effective": 0.003})
 
-    await usage.record_parse_usage(pages=10, tier="cost_effective")
+    await usage.record_parse_usage(pages=10)
 
-    assert captured_events == [
-        UsageEvent(kind="parse", stage="parsing", pages=10, tier="cost_effective", cost_usd=0.03)
-    ]
+    # LiteParse is local, so parse rows track pages only — no tier, no cost.
+    assert captured_events == [UsageEvent(kind="parse", stage="parsing", pages=10)]
 
 
 async def test_record_parse_usage_skips_when_db_unconfigured(monkeypatch, captured_events):
     monkeypatch.setattr(settings, "supabase_db_url", SecretStr(""))
 
-    await usage.record_parse_usage(pages=10, tier="fast")
+    await usage.record_parse_usage(pages=10)
 
     assert captured_events == []

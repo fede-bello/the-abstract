@@ -1,4 +1,4 @@
-"""Unit tests for the parsing step logic (LlamaParse client mocked)."""
+"""Unit tests for the parsing step logic (LiteParse client mocked)."""
 
 from pathlib import Path
 
@@ -28,3 +28,18 @@ async def test_parse_paper_without_pdf_path_raises():
 
     with pytest.raises(ParseError, match="no pdf_path"):
         await parse_paper(paper)
+
+
+@pytest.mark.integration
+async def test_liteparse_parses_a_real_pdf():
+    """LiteParse should turn a sample arXiv PDF into non-empty markdown (no network, no key)."""
+    from arxiv_digest.clients.parse import parse_pdf_to_markdown
+    from arxiv_digest.config import settings
+
+    pdf = next(iter(sorted(settings.pdf_dir.glob("*.pdf"))), None)
+    if pdf is None:
+        pytest.skip(f"no sample PDFs in {settings.pdf_dir}")
+
+    markdown = await parse_pdf_to_markdown(pdf)
+
+    assert markdown.strip()

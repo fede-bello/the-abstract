@@ -66,7 +66,6 @@ jobs:
           # and LLM_API_KEY (and drop CLAUDE_CODE_OAUTH_TOKEN); see config.toml for model strings.
           LLM_BACKEND: claude_code
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          LLAMA_CLOUD_API_KEY: ${{ secrets.LLAMA_CLOUD_API_KEY }}
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           # Project URL (https://<ref>.supabase.co) — builds the unsubscribe link in each digest.
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

@@ -39,7 +39,7 @@ async def _run_usage(weeks: int) -> None:
 
     header = (
         f"{'week':<12} {'llm':>5} {'in_tok':>9} {'out_tok':>9} "
-        f"{'parse':>6} {'pages':>6} {'llm_$':>9} {'parse_$':>9} {'total_$':>9}"
+        f"{'parse':>6} {'pages':>6} {'llm_$':>9} {'total_$':>9}"
     )
     print(header)
     print("-" * len(header))
@@ -48,7 +48,7 @@ async def _run_usage(weeks: int) -> None:
         print(
             f"{week:<12} {row.llm_calls:>5} {row.input_tokens:>9} {row.output_tokens:>9} "
             f"{row.parse_jobs:>6} {row.parse_pages:>6} {row.llm_cost_usd:>9.4f} "
-            f"{row.parse_cost_usd:>9.4f} {row.total_cost_usd:>9.4f}"
+            f"{row.total_cost_usd:>9.4f}"
         )
 
 

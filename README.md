@@ -13,7 +13,7 @@ arXiv (cs.LG, cs.CL, cs.CV, …)
         ↓
 classify  ──→ useful vs. noise        (cheap: title + abstract + authors)
         ↓ (useful only)
-parse  ──→  text, figures, tables      (LlamaParse)
+parse  ──→  text from the PDF          (LiteParse, local)
         ↓
 categorize ──→ multi-label tags        (LLMs, Diffusion, RL, Agents, …)
         ↓
@@ -37,7 +37,7 @@ backend/                     # Python: the weekly LlamaIndex Workflows pipeline
   src/arxiv_digest/
     workflows/   # digest.py — the explicit pipeline: every @step method, in order
     steps/       # one self-contained folder per pipeline stage
-    clients/     # arXiv, LLM, DB, LlamaParse — all external I/O
+    clients/     # arXiv, LLM, DB, LiteParse — all external I/O
     config.py
 frontend/                    # Vite + React SPA — reads Supabase directly via the anon key
 supabase/                    # migrations + double-opt-in Edge Functions (subscribe/confirm/unsubscribe)
@@ -50,7 +50,7 @@ The backend is purely the weekly pipeline: it writes to Supabase, and the SPA re
 | Layer | Choice |
 |---|---|
 | Orchestration | [LlamaIndex Workflows](https://developers.llamaindex.ai/python/llamaagents/workflows/) |
-| Parsing | LlamaParse (LlamaCloud) |
+| Parsing | [LiteParse](https://github.com/run-llama/liteparse) (local, no API key) |
 | LLM / embeddings | Configurable provider (Claude subscription by default) |
 | Database | Supabase / Postgres + pgvector |
 | Newsletter | Supabase Edge Functions (Deno) |
@@ -59,14 +59,14 @@ The backend is purely the weekly pipeline: it writes to Supabase, and the SPA re
 
 ## Getting started
 
-Prerequisites: [`uv`](https://docs.astral.sh/uv/), Node, and accounts for Supabase, LlamaCloud, and an SMTP sender — plus a Claude subscription (default) or an LLM API key.
+Prerequisites: [`uv`](https://docs.astral.sh/uv/), Node, and accounts for Supabase and an SMTP sender — plus a Claude subscription (default) or an LLM API key. (Parsing is local, so no LlamaCloud account is needed.)
 
 ```bash
 git clone git@github.com:fede-bello/the-abstract.git
 cd the-abstract
 
 # backend — the weekly pipeline
-cp .env.example .env        # add your secrets (LLM, LlamaCloud, Supabase DB, SMTP)
+cp .env.example .env        # add your secrets (LLM, Supabase DB, SMTP)
 uv sync
 uv run arxiv-digest ingest  # run the weekly pipeline once to populate the DB (and email the digest)
 
@@ -84,7 +84,7 @@ Configuration — arXiv categories, the topic-tag list, model names, the public 
 
 ### Weekly automation & email signup
 
-`.github/workflows/weekly-digest.yml` runs `arxiv-digest ingest` every Monday (and on demand from the Actions tab). That one command ingests the week's papers *and* emails the digest — its last step. Add these repository secrets for it to run: `CLAUDE_CODE_OAUTH_TOKEN`, `LLAMA_CLOUD_API_KEY`, `SUPABASE_DB_URL`, `SUPABASE_URL`, `SMTP_USERNAME`, `SMTP_PASSWORD`.
+`.github/workflows/weekly-digest.yml` runs `arxiv-digest ingest` every Monday (and on demand from the Actions tab). That one command ingests the week's papers *and* emails the digest — its last step. Add these repository secrets for it to run: `CLAUDE_CODE_OAUTH_TOKEN`, `SUPABASE_DB_URL`, `SUPABASE_URL`, `SMTP_USERNAME`, `SMTP_PASSWORD`.
 
 By default the LLM runs on your **Claude subscription** — no API key. Generate the token once with `claude setup-token` and store it as `CLAUDE_CODE_OAUTH_TOKEN`; the workflow installs the `claude` CLI and sets `LLM_BACKEND=claude_code`. To use a pay-per-token API instead (Anthropic, OpenAI, …), set `LLM_BACKEND=litellm`, point the model strings in `config.toml` at that provider (e.g. `openai/gpt-4o-mini`), and supply `LLM_API_KEY` instead of the OAuth token — no code change.
 
