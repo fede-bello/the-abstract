@@ -1,9 +1,10 @@
-"""Usage/cost recording for paid external calls — best-effort, never fatal.
+"""Usage recording for external calls — best-effort, never fatal.
 
-Writes one ``usage_events`` row per paid LLM completion (LiteLLM path) and per LlamaParse
-job, so the week's spend can be rolled up (see ``db.fetch_weekly_usage`` and the
+Writes one ``usage_events`` row per paid LLM completion (LiteLLM path) and per parse job, so
+the week's LLM spend and parse volume can be rolled up (see ``db.fetch_weekly_usage`` and the
 ``arxiv-digest usage`` command). Claude Code subscription completions are not recorded: they
-expose no token data and cost $0 at the margin.
+expose no token data and cost $0 at the margin. Parsing is local (LiteParse), so parse rows
+track pages only — there is no parse cost.
 
 Recording must never break the pipeline, so every entry point swallows its own errors (a
 failed insert, an unconfigured DB) and logs a warning. Heavy imports (``db``, ``litellm``)
@@ -12,7 +13,7 @@ are deferred into the functions, matching ``clients/llm.py``'s lazy-import style
 
 import logging
 
-from arxiv_digest.config import ParseTier, settings
+from arxiv_digest.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -57,15 +58,17 @@ async def record_litellm_usage(*, stage: str | None, model: str, response: objec
         logger.warning("failed to record LLM usage for stage %s", stage, exc_info=True)
 
 
-async def record_parse_usage(*, pages: int, tier: ParseTier) -> None:
-    """Record a LlamaParse job's pages and estimated cost. Best-effort; errors are swallowed."""
+async def record_parse_usage(*, pages: int) -> None:
+    """Record a parse job's page count. Best-effort; errors are swallowed.
+
+    LiteParse is local, so there is no cost: this tracks parse volume only.
+    """
     if not settings.supabase_db_url.get_secret_value():
         return
     from arxiv_digest.clients.db import UsageEvent, record_usage_event
 
-    cost = pages * settings.parse_cost_per_page_usd.get(tier, 0.0)
-    event = UsageEvent(kind="parse", stage="parsing", pages=pages, tier=tier, cost_usd=cost)
+    event = UsageEvent(kind="parse", stage="parsing", pages=pages)
     try:
         await record_usage_event(event)
     except Exception:  # noqa: BLE001 — usage tracking must never break the pipeline
-        logger.warning("failed to record parse usage (%d pages, %s)", pages, tier, exc_info=True)
+        logger.warning("failed to record parse usage (%d pages)", pages, exc_info=True)

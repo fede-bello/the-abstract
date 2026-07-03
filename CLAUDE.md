@@ -14,7 +14,7 @@ This project leans on skills instead of repeating instructions here. **Before do
 | Write/refactor/review pytest tests | `python-unit-tests` |
 | Build/debug event-driven pipeline steps | `llamaindex-workflows` |
 | RAG / indexing / retrieval (Q&A) | `llamaindex-framework` |
-| Parse PDFs, extract structured data | `llamacloud` |
+| Parse PDFs to markdown | none — thin local `clients/parse.py` (LiteParse, no cloud) |
 | Postgres / pgvector schema & queries | `supabase-postgres-best-practices` |
 | React (frontend) performance & patterns | `vercel-react-best-practices` |
 

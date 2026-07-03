@@ -32,15 +32,6 @@ DEFAULT_ARXIV_CATEGORIES = [
 
 LogLevel = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 LLMBackend = Literal["auto", "claude_code", "litellm"]
-ParseTier = Literal["fast", "cost_effective", "agentic", "agentic_plus"]
-
-# Fallback parse-cost estimates if config.toml omits them; editable per LlamaCloud plan.
-DEFAULT_PARSE_COST_PER_PAGE_USD: dict[ParseTier, float] = {
-    "fast": 0.001,
-    "cost_effective": 0.003,
-    "agentic": 0.006,
-    "agentic_plus": 0.009,
-}
 
 
 class Settings(BaseSettings):
@@ -61,7 +52,6 @@ class Settings(BaseSettings):
     # The API key for the litellm backend — any provider (Anthropic, OpenAI, …), matched to the
     # model prefix. Blank when running on the Claude subscription (claude_code backend).
     llm_api_key: SecretStr = SecretStr("")
-    llama_cloud_api_key: SecretStr = SecretStr("")
     supabase_db_url: SecretStr = SecretStr("")
     smtp_username: SecretStr = SecretStr("")
     smtp_password: SecretStr = SecretStr("")
@@ -94,15 +84,11 @@ class Settings(BaseSettings):
     llm_timeout_seconds: float = Field(default=60.0, gt=0)
     llm_max_concurrency: int = Field(default=4, gt=0)
 
-    # --- Parsing (LlamaParse v2) ---
-    parse_tier: ParseTier = Field(default="cost_effective")
+    # --- Parsing (LiteParse, local) ---
     parse_max_concurrency: int = Field(default=4, gt=0)
-    parse_timeout_seconds: float = Field(default=1_800.0, gt=0)
-    # Estimated USD per parsed page, per tier — used only for the weekly cost report. LlamaParse
-    # pricing is plan-specific, so these are editable approximations: set them to your plan's rates.
-    parse_cost_per_page_usd: dict[ParseTier, float] = Field(
-        default_factory=lambda: dict(DEFAULT_PARSE_COST_PER_PAGE_USD)
-    )
+    # OCR is for scanned/image PDFs; arXiv papers are born-digital, so it stays off (embedded-text
+    # extraction only) — enable it if you ingest scanned documents (much slower, needs Tesseract).
+    parse_ocr_enabled: bool = Field(default=False)
 
     # --- Workflow / runtime ---
     workflow_timeout_seconds: int = Field(default=86_400, gt=0)

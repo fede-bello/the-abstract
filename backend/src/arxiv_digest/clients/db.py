@@ -56,7 +56,6 @@ _USAGE_COLUMNS = (
     "input_tokens",
     "output_tokens",
     "pages",
-    "tier",
     "cost_usd",
 )
 _USAGE_PLACEHOLDERS = ", ".join(f"${i}" for i in range(1, len(_USAGE_COLUMNS) + 1))
@@ -67,7 +66,7 @@ _INSERT_USAGE_SQL = (
 _SELECT_WEEKLY_USAGE_SQL = (
     # Re-state `order by` here: the view's own ordering isn't guaranteed to survive an outer LIMIT.
     "select week, llm_calls, input_tokens, output_tokens, parse_jobs, parse_pages, "
-    "llm_cost_usd, parse_cost_usd, total_cost_usd from weekly_usage order by week desc limit $1"
+    "llm_cost_usd, total_cost_usd from weekly_usage order by week desc limit $1"
 )
 
 _pool: asyncpg.Pool | None = None
@@ -82,10 +81,10 @@ class Subscriber(BaseModel):
 
 
 class UsageEvent(BaseModel):
-    """One paid external call to bill against the week.
+    """One external call to account against the week.
 
-    ``kind`` is 'llm' or 'parse'; the token/page/tier fields are populated only for the
-    relevant kind.
+    ``kind`` is 'llm' or 'parse'; the token fields are populated for 'llm' rows and ``pages``
+    for 'parse' rows. Parsing is local (LiteParse), so parse rows carry no cost.
     """
 
     kind: str
@@ -94,7 +93,6 @@ class UsageEvent(BaseModel):
     input_tokens: int | None = None
     output_tokens: int | None = None
     pages: int | None = None
-    tier: str | None = None
     cost_usd: float = 0.0
 
 
@@ -108,7 +106,6 @@ class WeeklyUsage(BaseModel):
     parse_jobs: int
     parse_pages: int
     llm_cost_usd: float
-    parse_cost_usd: float
     total_cost_usd: float
 
 
@@ -195,7 +192,6 @@ async def record_usage_event(event: UsageEvent) -> None:
                 event.input_tokens,
                 event.output_tokens,
                 event.pages,
-                event.tier,
                 event.cost_usd,
             )
     except asyncpg.PostgresError as exc:
@@ -221,7 +217,6 @@ async def fetch_weekly_usage(weeks: int) -> list[WeeklyUsage]:
             parse_jobs=row["parse_jobs"],
             parse_pages=row["parse_pages"],
             llm_cost_usd=float(row["llm_cost_usd"]),
-            parse_cost_usd=float(row["parse_cost_usd"]),
             total_cost_usd=float(row["total_cost_usd"]),
         )
         for row in rows

@@ -1,6 +1,6 @@
 """Offline end-to-end tests for the classify -> ((parse -> summarize) ∥ categorize) flow.
 
-The LLM and LlamaParse boundaries are stubbed, so these run with no network and exercise
+The LLM and LiteParse boundaries are stubbed, so these run with no network and exercise
 the workflow's routing: useful papers get parsed, summarized + tagged and survive, noise
 papers are dropped, parse failures are dropped, and an empty run completes cleanly.
 """

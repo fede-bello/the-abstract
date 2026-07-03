@@ -10,11 +10,10 @@ dependencies = [
     # Orchestration — the pipeline is built on LlamaIndex Workflows
     "llama-index-workflows>=2.0",
     "llama-index-core>=0.12",
-    # LLM + document parsing
+    # LLM
     "llama-index-llms-anthropic>=0.6",
-    # LlamaParse v2 — PDF → markdown via the cost-effective tier (the v2 `llama-cloud`
-    # SDK; the classic `llama-cloud-services` pins llama-cloud<0.2 and can't coexist).
-    "llama-cloud>=2.1",
+    # PDF → markdown parsing, local (no cloud, no API key). Native Rust/PyO3, bundled Tesseract.
+    "liteparse>=2.4",
     # Storage (Supabase Postgres) — hand-rolled async SQL
     "asyncpg>=0.30",
     # Email digest delivery (async SMTP)

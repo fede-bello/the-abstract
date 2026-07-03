@@ -40,16 +40,11 @@ summarization_max_output_tokens = 2048
 llm_timeout_seconds = 60.0
 llm_max_concurrency = 4
 
-# --- Parsing (LlamaParse v2) ---
-# parse_tier, cheapest -> most accurate: "fast", "cost_effective", "agentic", "agentic_plus".
-parse_tier = "cost_effective"
+# --- Parsing (LiteParse, local) ---
 parse_max_concurrency = 4
-parse_timeout_seconds = 1800.0
-
-# Estimated USD per parsed page, per tier — used only for the weekly cost report
-# (`arxiv-digest usage`). LlamaParse pricing is plan-specific, so these are EDITABLE ESTIMATES:
-# replace them with your LlamaCloud plan's actual per-page rates for an accurate $ figure.
-parse_cost_per_page_usd = { fast = 0.001, cost_effective = 0.003, agentic = 0.006, agentic_plus = 0.009 }
+# OCR is only for scanned/image PDFs. arXiv papers are born-digital, so leave it off (fast,
+# embedded-text extraction). Turn it on only if you ingest scanned docs — much slower.
+parse_ocr_enabled = false
 
 # --- Workflow / runtime ---
 workflow_timeout_seconds = 86400   # Max seconds per run.
