@@ -10,6 +10,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 import type { ApiClient, SubscribeResult } from '@/data/client';
 import type {
+  PageParams,
   Paper,
   PaperFilters,
   TopicCount,
@@ -94,8 +95,14 @@ export class SupabaseApiClient implements ApiClient {
     this.db = createClient(url, anonKey);
   }
 
-  async listPapers(filters: PaperFilters = {}): Promise<Paper[]> {
-    let query = this.db.from('papers').select(LIST_COLUMNS).order('published', { ascending: false });
+  async listPapers(filters: PaperFilters = {}, page?: PageParams): Promise<Paper[]> {
+    // Secondary sort on the unique arxiv_id gives a total order, so paginated windows stay
+    // stable even when papers share a `published` timestamp (common within one arXiv batch).
+    let query = this.db
+      .from('papers')
+      .select(LIST_COLUMNS)
+      .order('published', { ascending: false })
+      .order('arxiv_id', { ascending: false });
     if (filters.topics?.length) query = query.overlaps('topics', filters.topics);
     if (filters.categories?.length) query = query.overlaps('categories', filters.categories);
     if (filters.from) query = query.gte('published', filters.from);
@@ -104,6 +111,7 @@ export class SupabaseApiClient implements ApiClient {
       const needle = `%${filters.q}%`;
       query = query.or(`title.ilike.${needle},abstract.ilike.${needle}`);
     }
+    if (page) query = query.range(page.offset, page.offset + page.limit - 1);
     const { data, error } = await query.returns<PaperRow[]>();
     if (error) throw new Error(`failed to list papers: ${error.message}`);
     return data.map(rowToPaper);
