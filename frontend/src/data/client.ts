@@ -3,6 +3,7 @@
 // key; swapping the data source is a one-line change here.
 
 import type {
+  PageParams,
   Paper,
   PaperFilters,
   TopicCount,
@@ -17,7 +18,7 @@ export type SubscribeResult = 'confirmation-sent' | 'already-subscribed';
 
 /** The data-access contract the hooks depend on. Implemented by SupabaseApiClient. */
 export interface ApiClient {
-  listPapers(filters?: PaperFilters): Promise<Paper[]>;
+  listPapers(filters?: PaperFilters, page?: PageParams): Promise<Paper[]>;
   getPaper(arxivId: string): Promise<Paper | null>;
   getLatestWeek(): Promise<WeekIssueData | null>;
   listWeeks(): Promise<WeekSummary[]>;

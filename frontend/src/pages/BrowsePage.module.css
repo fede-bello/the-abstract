@@ -45,6 +45,35 @@
   transition: opacity var(--dur) var(--ease);
 }
 
+/* Infinite-scroll trigger: kept in flow with a little height so the observer can catch it. */
+.sentinel {
+  display: flex;
+  justify-content: center;
+  min-height: var(--s5);
+  margin-top: var(--s6);
+}
+
+.loadMore {
+  font-family: var(--font-mono);
+  font-size: var(--fs-meta);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: var(--s3) var(--s5);
+  border: var(--border);
+  border-radius: var(--radius);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+
+.loadMore:hover {
+  color: var(--fg);
+  border-color: var(--fg);
+}
+
 @media (max-width: 880px) {
   .head {
     grid-template-columns: 1fr;

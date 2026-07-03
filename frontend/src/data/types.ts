@@ -44,6 +44,12 @@ export interface PaperFilters {
   q?: string; // keyword over title + abstract
 }
 
+/** A page window for paginated list queries (zero-based offset). */
+export interface PageParams {
+  limit: number;
+  offset: number;
+}
+
 export interface TopicCount {
   title: string;
   count: number;
