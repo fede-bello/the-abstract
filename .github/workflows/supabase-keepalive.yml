@@ -1,0 +1,52 @@
+name: Supabase keepalive
+
+# Supabase pauses free-tier projects after 7 consecutive days with no database or API
+# activity. The weekly digest is the only thing that reliably touches this project, and it
+# runs exactly every 7 days — so one skipped or failed run, in a week with no site visitors,
+# is enough to trip the pause. This job touches the database daily so the inactivity timer
+# never gets close. It is deliberately trivial: a single row count, a few seconds a day.
+#
+# CAVEAT: GitHub disables scheduled workflows on repos with no commits for 60 days. If the
+# repo goes quiet for two months this cron stops and the project pauses again. Re-enable it
+# from the Actions tab, or add a free external monitor (cron-job.org, UptimeRobot) hitting
+# the PostgREST URL below every day as a backstop that does not depend on this repo.
+on:
+  schedule:
+    - cron: "17 6 * * *" # daily, off the top of the hour to dodge scheduler contention
+  workflow_dispatch: {} # allow a manual ping from the Actions tab
+
+concurrency:
+  group: supabase-keepalive
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping Postgres
+        # A real query over the session pooler — the unambiguous "database activity" signal.
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::SUPABASE_DB_URL is not set — add it as a repository secret."
+            exit 1
+          fi
+          psql "$SUPABASE_DB_URL" -Atc 'select count(*) from papers'
+
+      - name: Ping PostgREST
+        # Second, independent signal over the same path the SPA uses. Optional: skipped
+        # unless SUPABASE_ANON_KEY is set (the anon key is public and RLS-gated, so it is a
+        # secret here only to keep the workflow file free of per-deployment values).
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "SUPABASE_URL/SUPABASE_ANON_KEY not set — skipping the REST ping."
+            exit 0
+          fi
+          curl -fsS -o /dev/null \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            "$SUPABASE_URL/rest/v1/papers?select=arxiv_id&limit=1"
