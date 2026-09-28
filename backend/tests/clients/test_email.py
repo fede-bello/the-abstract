@@ -45,12 +45,25 @@ async def test_send_email_from_falls_back_to_smtp_username(monkeypatch):
     assert captured["message"]["From"] == "login@x.com"
 
 
-async def test_send_email_wraps_smtp_failure(monkeypatch):
+async def test_send_email_wraps_smtp_failure_with_server_response(monkeypatch):
     async def failing_send(message, **kwargs):
-        msg = "connection refused"
-        raise aiosmtplib.SMTPException(msg)
+        raise aiosmtplib.SMTPAuthenticationError(535, "Username and Password not accepted")
 
     monkeypatch.setattr(email_client.aiosmtplib, "send", failing_send)
 
-    with pytest.raises(EmailError, match=r"failed to send digest to me@x.com"):
+    with pytest.raises(EmailError, match=r"failed to send digest email: 535 Username and Pass"):
         await send_email(to="me@x.com", subject="s", html="<p>h</p>")
+
+
+async def test_send_email_error_never_contains_the_address(monkeypatch):
+    async def refusing_send(message, **kwargs):
+        refused = aiosmtplib.SMTPRecipientRefused(550, "no such user", "me@x.com")
+        raise aiosmtplib.SMTPRecipientsRefused([refused])
+
+    monkeypatch.setattr(email_client.aiosmtplib, "send", refusing_send)
+
+    with pytest.raises(EmailError) as excinfo:
+        await send_email(to="me@x.com", subject="s", html="<p>h</p>")
+
+    assert "me@x.com" not in str(excinfo.value)
+    assert excinfo.value.__cause__ is None

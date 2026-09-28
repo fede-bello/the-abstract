@@ -41,5 +41,12 @@ async def send_email(*, to: str, subject: str, html: str) -> None:
             password=settings.smtp_password.get_secret_value(),
         )
     except aiosmtplib.SMTPException as exc:
-        msg = f"failed to send digest to {to}: {exc}"
-        raise EmailError(msg) from exc
+        # The repo and its CI logs are public, so the message must not carry the address.
+        # Only a server response is safe to echo; other SMTP errors (e.g. recipients
+        # refused) stringify with the address, so keep just their type.
+        if isinstance(exc, aiosmtplib.SMTPResponseException):
+            detail = f"{exc.code} {exc.message}"
+        else:
+            detail = type(exc).__name__
+        msg = f"failed to send digest email: {detail}"
+        raise EmailError(msg) from None

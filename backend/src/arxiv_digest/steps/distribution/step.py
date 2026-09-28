@@ -119,5 +119,6 @@ async def send_digest(papers: list[Paper]) -> None:
         )
         try:
             await send_email(to=subscriber.email, subject=subject, html=body)
-        except EmailError:
-            logger.warning("failed to email %s; continuing", subscriber.email, exc_info=True)
+        except EmailError as exc:
+            # No address and no traceback: CI logs are public (see clients/email.py).
+            logger.warning("%s; continuing with the next subscriber", exc)
