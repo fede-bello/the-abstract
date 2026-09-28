@@ -85,7 +85,13 @@ async def _complete_claude_code(system: str, user: str, schema: type[T], model: 
     The SDK exposes no max-output-tokens knob, so a caller's ``max_tokens`` only bounds
     the LiteLLM path; here output is left to the model's own limit.
     """
-    from claude_agent_sdk import AssistantMessage, ClaudeAgentOptions, TextBlock, query
+    from claude_agent_sdk import (
+        AssistantMessage,
+        ClaudeAgentOptions,
+        ResultMessage,
+        TextBlock,
+        query,
+    )
 
     options = ClaudeAgentOptions(
         model=_bare_model(model),  # the subscription is Claude-only; drop any "anthropic/" prefix
@@ -101,6 +107,12 @@ async def _complete_claude_code(system: str, user: str, schema: type[T], model: 
         async for message in query(prompt=prompt, options=options):
             if isinstance(message, AssistantMessage):
                 chunks.extend(b.text for b in message.content if isinstance(b, TextBlock))
+            elif isinstance(message, ResultMessage) and message.is_error:
+                # The SDK follows an error result with an opaque "error result: <subtype>"
+                # exception; raise here instead so the CLI's actual message (e.g. an
+                # expired OAuth token) reaches the logs.
+                msg = f"Claude Code error ({message.subtype}): {message.result}"
+                raise LLMError(msg)
         return "".join(chunks)
 
     text = await asyncio.wait_for(_run(), timeout=settings.llm_timeout_seconds)
