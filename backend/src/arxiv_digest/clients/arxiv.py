@@ -21,12 +21,10 @@ from arxiv_digest.config import settings
 
 logger = logging.getLogger(__name__)
 
-# arXiv throttles with 429 (too many requests) and 503 (service busy), and its CDN
-# intermittently answers valid queries with an empty 406 (the same URL succeeds
-# moments later). All three are transient, so we retry them with exponential
-# backoff + jitter; other statuses (e.g. 400) fail fast. (Backoff timings are
-# configurable in Settings.)
-_RETRYABLE_STATUSES = frozenset({406, 429, 503})
+# arXiv throttles with 429 (too many requests) and 503 (service busy). Both are
+# transient, so we retry them with exponential backoff + jitter; other statuses
+# (e.g. 400) fail fast. (Backoff timings are configurable in Settings.)
+_RETRYABLE_STATUSES = frozenset({429, 503})
 
 
 class Author(BaseModel):
