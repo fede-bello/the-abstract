@@ -20,12 +20,11 @@ max_results = 25   # Max papers per ingestion run.
 days_back = 7      # Only fetch papers submitted in the last N days.
 
 # --- arXiv client + retry/backoff (seconds) ---
-arxiv_page_size = 100
 arxiv_request_delay_seconds = 5.0
-arxiv_num_retries = 1
 arxiv_max_attempts = 6
 arxiv_retry_base_delay_seconds = 3.0
 arxiv_retry_max_delay_seconds = 60.0
+arxiv_request_timeout_seconds = 60.0
 arxiv_pdf_download_timeout_seconds = 60.0
 
 # --- LLM / classification ---

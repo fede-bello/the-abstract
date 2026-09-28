@@ -22,9 +22,6 @@ dependencies = [
     "pydantic>=2.9",
     "pydantic-settings>=2.6",
     "httpx>=0.27",
-    # arXiv API client — metadata query (PDF download is done via httpx, see clients/arxiv.py).
-    # Pinned to the tested 4.x major; 4.0 dropped Result.download_pdf and changed author.affiliation.
-    "arxiv>=4,<5",
     # LLM backends: Claude Code SDK (subscription) primary, LiteLLM (provider-swap) fallback
     "claude-agent-sdk>=0.1",
     "litellm>=1.50",
@@ -113,8 +110,6 @@ plugins = ["pydantic.mypy"]
 module = [
     "llama_index.*",
     "workflows.*",
-    "arxiv",
-    "arxiv.*",
     "litellm",
     "litellm.*",
     "claude_agent_sdk",

@@ -65,12 +65,11 @@ class Settings(BaseSettings):
     days_back: int = Field(default=7, gt=0)
 
     # --- arXiv client + retry/backoff tuning (seconds) ---
-    arxiv_page_size: int = Field(default=100, gt=0)
     arxiv_request_delay_seconds: float = Field(default=5.0, ge=0)
-    arxiv_num_retries: int = Field(default=1, ge=0)
     arxiv_max_attempts: int = Field(default=6, ge=1)
     arxiv_retry_base_delay_seconds: float = Field(default=3.0, gt=0)
     arxiv_retry_max_delay_seconds: float = Field(default=60.0, gt=0)
+    arxiv_request_timeout_seconds: float = Field(default=60.0, gt=0)
     arxiv_pdf_download_timeout_seconds: float = Field(default=60.0, gt=0)
 
     # --- LLM / classification ---
