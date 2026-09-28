@@ -70,7 +70,7 @@ The ORM-specific rules from upstream don't apply (this project uses Supabase/pgv
 
 The whole backend is `async` (LlamaIndex Workflows). Blocking the loop serializes everything.
 
-- **Wrap blocking sync libraries in `asyncio.to_thread`.** `clients/arxiv.py` does exactly this — the synchronous `arxiv` library runs in a worker thread so the loop stays free. Do the same for any sync SDK, file, or network call you must use from an `async def`.
+- **Wrap blocking sync libraries in `asyncio.to_thread`.** `clients/arxiv.py` does exactly this — the synchronous OAI-PMH harvest and PDF downloads run in a worker thread so the loop stays free. Do the same for any sync SDK, file, or network call you must use from an `async def`.
 - **Never call a blocking function directly from an `async def`** (no sync `requests`, no sync DB driver, no `time.sleep` on the request path).
 - **Use the workflow's concurrency primitives, not hand-rolled `asyncio.gather`,** for fan-out across a step — `ctx.send_event` + `@step(num_workers=N)` + `ctx.collect_events`. (Architecture rule from `CLAUDE.md`; the classification stage is the worked example. `asyncio.gather` is fine in *test* code.)
 

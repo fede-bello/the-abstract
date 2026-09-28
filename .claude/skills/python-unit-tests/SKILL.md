@@ -54,7 +54,7 @@ The one registered marker is `integration: tests that call a real LLM backend`. 
 
 - Build small factories (`make_paper(**overrides)`) with neutral defaults instead of 12-field inline `Paper(...)` blocks. `test_classification.py`'s `_to_paper` is exactly this pattern — promote it to a shared builder when a second test needs a `Paper`.
 - Values in assertions should be derived from or named after their meaning, not bare magic numbers (tests are exempt from the `PLR2004` lint, so this is discipline, not a linter).
-- Freeze time at the boundary when behavior depends on "now" — `clients/arxiv.py`'s `_build_query` uses `datetime.now(UTC)`, so any test of it must control the clock. Add `freezegun` or `time-machine` to the `dev` extras rather than monkeypatching `datetime` in several places.
+- Freeze time at the boundary when behavior depends on "now" — `clients/arxiv.py`'s `_fetch_sync` derives its window from `datetime.now(UTC)`, so any test of it must control the clock (the pure `select_recent` takes `since` explicitly, so prefer testing that). Add `freezegun` or `time-machine` to the `dev` extras rather than monkeypatching `datetime` in several places.
 - Test in UTC explicitly. Tests that pass on your laptop and fail in CI's timezone are a classic time-sink.
 - Seed any randomness (`random.seed(0)`) so failures reproduce — `clients/arxiv.py`'s backoff jitter is a live source of nondeterminism.
 
@@ -79,7 +79,7 @@ What this does *not* mean: don't merge separate concepts to shrink line count; d
 
 ## Mocking — what to mock and where
 
-- **Mock at *your* `clients/` boundary, not third-party internals.** Mock `clients.llm.complete_structured` or `clients.arxiv.fetch_recent_papers`, not `litellm.acompletion`, `claude_agent_sdk.query`, or `arxiv.Client.results`. The closer to the third party you go, the more your test couples to its implementation — swapping LiteLLM for another backend shouldn't break a classification-logic test.
+- **Mock at *your* `clients/` boundary, not third-party internals.** Mock `clients.llm.complete_structured` or `clients.arxiv.fetch_recent_papers`, not `litellm.acompletion`, `claude_agent_sdk.query`, or `httpx.Client.get`. The closer to the third party you go, the more your test couples to its implementation — swapping LiteLLM for another backend shouldn't break a classification-logic test.
 - **Patch where the name is looked up, not where it's defined.** The classifier does `from arxiv_digest.clients.llm import complete_structured`, so patch `arxiv_digest.steps.classification.step.complete_structured`, not the client module.
 - **Prefer fakes over mocks** when feasible. A small async stub that returns a canned `ClassificationResult` is more honest than a `MagicMock` with hand-wired returns, and survives refactors.
 - **Always pass `spec=`** when you do use `Mock` / `MagicMock`. Without it, `m.typo_method()` silently returns another Mock and your test passes while production blows up.
